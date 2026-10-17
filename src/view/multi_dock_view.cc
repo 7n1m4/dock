@@ -28,9 +28,10 @@
 
 namespace crystaldock {
 
-MultiDockView::MultiDockView(MultiDockModel* model)
+MultiDockView::MultiDockView(MultiDockModel* model, bool openSettings)
     : model_(model),
-      desktopEnv_(DesktopEnv::getDesktopEnv()) {
+      desktopEnv_(DesktopEnv::getDesktopEnv()),
+      openSettings_(openSettings) {
   connect(model_, SIGNAL(dockAdded(int)), this, SLOT(onDockAdded(int)));
   connect(model_, SIGNAL(wallpaperChanged(int)), this,
           SLOT(setWallpaper(int)));
@@ -61,6 +62,27 @@ void MultiDockView::show() {
     dock.second->show();
   }
   setWallpaper();
+  if (openSettings_ && !model_->dockIds().empty()) {
+    showSettingsScreen(model_->dockIds().front());
+  }
+}
+
+DockPanel* MultiDockView::panelFor(int dockId) const {
+  if (auto it = docks_.find(dockId); it != docks_.end()) {
+    return it->second.get();
+  }
+  return nullptr;
+}
+
+void MultiDockView::showSettingsScreen(int dockId) {
+  if (!settingsScreen_) {
+    settingsScreen_ = std::make_unique<DockSettingsScreen>(
+        nullptr, model_, dockId, panelFor(dockId), this);
+  } else {
+    settingsScreen_->setTargetPanel(dockId, panelFor(dockId));
+  }
+  settingsScreen_->reload();
+  settingsScreen_->show();
 }
 
 void MultiDockView::exit() {

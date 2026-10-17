@@ -26,6 +26,7 @@
 #include <QObject>
 
 #include "dock_panel.h"
+#include "dock_settings_screen.h"
 #include <desktop/desktop_env.h>
 #include <model/multi_dock_model.h>
 
@@ -37,12 +38,18 @@ class MultiDockView : public QObject {
 
  public:
   // No pointer ownership.
-  explicit MultiDockView(MultiDockModel* model);
+  explicit MultiDockView(MultiDockModel* model, bool openSettings = false);
   ~MultiDockView() = default;
 
   static bool checkPlatformSupported(const QApplication& app);
 
   void show();
+
+  // Returns the panel with this ID, or nullptr if there is none.
+  DockPanel* panelFor(int dockId) const;
+
+  // Shows the settings window (creating it lazily), aimed at the given panel.
+  void showSettingsScreen(int dockId);
 
  public slots:
   void exit();
@@ -61,6 +68,11 @@ class MultiDockView : public QObject {
   MultiDockModel* model_;  // No ownership.
   std::unordered_map<int, std::unique_ptr<DockPanel>> docks_;
   DesktopEnv* desktopEnv_;
+
+  // Whether this launch was asked to open the settings window.
+  bool openSettings_;
+
+  std::unique_ptr<DockSettingsScreen> settingsScreen_;
 };
 
 }  // namespace crystaldock

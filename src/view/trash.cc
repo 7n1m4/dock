@@ -48,14 +48,9 @@ Trash::Trash(DockPanel* parent, MultiDockModel* model, Qt::Orientation orientati
   trashPath_ = getTrashPath();
   trashInfoPath_ = getTrashInfoPath();
   trashFilesPath_ = getTrashFilesPath();
-  
-  createMenu();
+
   setupTrashWatcher();
   updateTrashState();
-  connect(&menu_, &QMenu::aboutToHide, this,
-          [this]() {
-            parent_->setShowingPopup(false);
-          });
 }
 
 void Trash::draw(QPainter* painter) const {
@@ -74,8 +69,6 @@ void Trash::draw(QPainter* painter) const {
 void Trash::mousePressEvent(QMouseEvent* e) {
   if (e->button() == Qt::LeftButton) {
     openTrash();
-  } else if (e->button() == Qt::RightButton) {
-    showPopupMenu(&menu_);
   }
 }
 
@@ -86,10 +79,11 @@ QString Trash::getLabel() const {
 void Trash::updateTrashState() {
   bool wasEmpty = isEmpty_;
   isEmpty_ = isTrashEmpty();
-  
+
   if (isEmpty_ != wasEmpty) {
     updateIcon();
     parent_->update();
+    emit trashStateChanged(isEmpty_);
   }
 }
 
@@ -169,15 +163,6 @@ void Trash::dropEvent(QDropEvent* event) {
   }
 }
 
-void Trash::createMenu() {
-  menu_.addSection(label_);
-  emptyTrashAction_ = menu_.addAction(QIcon::fromTheme("trash-empty"), "Empty Trash");
-  connect(emptyTrashAction_, &QAction::triggered, this, &Trash::emptyTrash);
-
-  menu_.addSeparator();
-  parent_->addPanelSettings(&menu_);
-}
-
 void Trash::moveToTrash(const QStringList& filePaths) {
   for (const QString& filePath : filePaths) {
     QFileInfo fileInfo(filePath);
@@ -238,8 +223,6 @@ QString Trash::getTrashFilesPath() const {
 
 void Trash::updateIcon() {
   setIconName(isEmpty_ ? kEmptyTrashIconName : kFullTrashIconName);
-  
-  emptyTrashAction_->setEnabled(!isEmpty_);
 }
 
 void Trash::setupTrashWatcher() {

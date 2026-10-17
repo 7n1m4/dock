@@ -74,6 +74,10 @@ class EditLaunchersDialog : public QDialog {
 
   void reload() { loadData(); }
 
+  // Makes this dialog usable as a child widget of the settings screen. See
+  // AppearanceSettingsDialog::configureForEmbedding().
+  void configureForEmbedding();
+
   void addLauncher(const QString& name, const QString& appId, const QString& iconName);
 
  public slots:

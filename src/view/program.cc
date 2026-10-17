@@ -67,7 +67,6 @@ Program::Program(DockPanel* parent, MultiDockModel* model, const QString& appId,
 }
 
 void Program::init() {
-  createMenu();
   animationTimer_.setInterval(500);
   connect(&animationTimer_, &QTimer::timeout, this, [this]() {
     attentionStrong_ = !attentionStrong_;
@@ -75,10 +74,6 @@ void Program::init() {
   });
   bounceTimer_.setInterval(kBounceIntervalMs);
   connect(&bounceTimer_, &QTimer::timeout, this, &Program::updateBounceAnimation);
-  connect(&menu_, &QMenu::aboutToHide, this,
-          [this]() {
-            parent_->setShowingPopup(false);
-          });
 }
 
 void Program::draw(QPainter *painter) const {
@@ -187,8 +182,6 @@ void Program::mousePressEvent(QMouseEvent* e) {
         }
       }
     }
-  } else if (e->button() == Qt::RightButton) {
-    showPopupMenu(&menu_);
   } else if (e->button() == Qt::MiddleButton) {
     launch();
     startBounceAnimation();
@@ -250,7 +243,6 @@ bool Program::addTask(const WindowInfo* task) {
     if (task->demandsAttention) {
       setDemandsAttention(true);
     }
-    updateMenu();
     if (!model_->groupTasksByApplication()) {
       setLabel(QString::fromStdString(task->title));
     }
@@ -279,7 +271,6 @@ bool Program::removeTask(void* window) {
   for (int i = 0; i < static_cast<int>(tasks_.size()); ++i) {
     if (tasks_[i].window == window) {
       tasks_.erase(tasks_.begin() + i);
-      updateMenu();
       return true;
     }
   }
@@ -369,58 +360,6 @@ void Program::closeAllWindows() {
   }
 }
 
-void Program::createMenu() {
-  menu_.addSection(QIcon::fromTheme(iconName_), label_);
-
-  if (isAppMenuEntry_ || pinned_) {
-    pinAction_ = menu_.addAction(
-        QString("Pinned"), this,
-        [this] {
-          pinUnpin();
-        });
-    pinAction_->setCheckable(true);
-    pinAction_->setChecked(pinned_);
-  }
-
-  if (isAppMenuEntry_) {
-    menu_.addAction(QIcon::fromTheme("list-add"), QString("&New Window"), this,
-                    [this] { launch(); });
-  }
-
-  closeAction_ = menu_.addAction(QIcon::fromTheme("window-close"), QString("&Close Window"), this,
-                                 [this] {
-                                   parent_->minimize();
-                                   QTimer::singleShot(DockPanel::kExecutionDelayMs, this, [this]{
-                                     closeAllWindows();
-                                   });
-                                 });
-
-  menu_.addSeparator();
-  menu_.addAction(QIcon::fromTheme("configure"), QString("Edit &Launchers"), parent_,
-                  [this] {
-                    parent_->minimize();
-                    QTimer::singleShot(DockPanel::kExecutionDelayMs, this, [this]{
-                      parent_->showEditLaunchersDialog();
-                    });
-                  });
-
-  if (model_->showTaskManager(parent_->dockId())) {
-    menu_.addAction(QIcon::fromTheme("configure"),
-                    QString("Task Manager &Settings"),
-                    parent_,
-                    [this] {
-                      parent_->minimize();
-                      QTimer::singleShot(DockPanel::kExecutionDelayMs, this, [this]{
-                        parent_->showTaskManagerSettingsDialog();
-                      });
-                    });
-  }
-
-  menu_.addSeparator();
-  parent_->addPanelSettings(&menu_);
-
-  updateMenu();
-}
 
 void Program::setDemandsAttention(bool value) {
   if (demandsAttention_ == value) {
@@ -447,10 +386,6 @@ void Program::updateDemandsAttention() {
   setDemandsAttention(false);
 }
 
-void Program::updateMenu() {
-  closeAction_->setVisible(!tasks_.empty());
-  closeAction_->setText(tasks_.size() > 1 ? "&Close All Windows" : "&Close Window");
-}
 
 void Program::startBounceAnimation() {
   if (!model_->bouncingLauncherIcon()) {

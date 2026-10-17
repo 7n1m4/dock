@@ -74,6 +74,15 @@ WallpaperSettingsDialog::~WallpaperSettingsDialog() {
   delete ui;
 }
 
+void WallpaperSettingsDialog::configureForEmbedding() {
+  setWindowFlag(Qt::Tool, false);
+  ui->buttonBox->setStandardButtons(QDialogButtonBox::Apply);
+}
+
+int WallpaperSettingsDialog::currentDesktop() const {
+  return ui->desktop->currentText().toInt();
+}
+
 void WallpaperSettingsDialog::setFor(int desktop, int screen) {
   populateDesktopList();
   ui->desktop->setCurrentIndex(desktop - 1);
@@ -135,6 +144,7 @@ void WallpaperSettingsDialog::reload() {
   if (multiScreen_) {
     adjustUiForScreen();
   }
+  populateDesktopList();
   loadData();
 }
 

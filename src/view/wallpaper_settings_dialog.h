@@ -41,6 +41,14 @@ class WallpaperSettingsDialog : public QDialog {
 
   void setFor(int desktop, int screen);
 
+  // Makes this dialog usable as a child widget of the settings screen. See
+  // AppearanceSettingsDialog::configureForEmbedding().
+  void configureForEmbedding();
+
+  // The desktop currently picked in the combo, as its 1-based number, which
+  // is what setFor() and the rest of the panel API take.
+  int currentDesktop() const;
+
  public slots:
   void populateDesktopList();
 

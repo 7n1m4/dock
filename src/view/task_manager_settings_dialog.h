@@ -39,6 +39,10 @@ class TaskManagerSettingsDialog : public QDialog {
 
   void reload() { loadData(); }
 
+  // Makes this dialog usable as a child widget of the settings screen. See
+  // AppearanceSettingsDialog::configureForEmbedding().
+  void configureForEmbedding();
+
  public slots:
   void accept() override;
   void buttonClicked(QAbstractButton* button);

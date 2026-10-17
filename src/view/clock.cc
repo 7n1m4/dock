@@ -18,10 +18,7 @@
 
 #include "clock.h"
 
-#include <QColor>
 #include <QDate>
-#include <QFont>
-#include <QIcon>
 #include <QTime>
 #include <QTimer>
 
@@ -38,19 +35,10 @@ Clock::Clock(DockPanel* parent, MultiDockModel* model,
              Qt::Orientation orientation, int minSize, int maxSize)
     : IconlessDockItem(parent, model, "" /* label */, orientation, minSize, maxSize,
                        kWhRatio),
-      calendar_(parent),
-      fontFamilyGroup_(this) {
-  createMenu();
-  loadConfig();
-
+      calendar_(parent) {
   QTimer* timer = new QTimer(this);
   connect(timer, SIGNAL(timeout()), this, SLOT(updateTime()));
   timer->start(1000);  // update the time every second.
-
-  connect(&menu_, &QMenu::aboutToHide, this,
-          [this]() {
-            parent_->setShowingPopup(false);
-          });
 }
 
 void Clock::draw(QPainter *painter) const {
@@ -81,10 +69,6 @@ void Clock::draw(QPainter *painter) const {
 void Clock::mousePressEvent(QMouseEvent *e) {
   if (e->button() == Qt::LeftButton) {
     calendar_.showCalendar();
-  } else if (e->button() == Qt::RightButton) {
-    // In case other docks have changed the config.
-    loadConfig();
-    showPopupMenu(&menu_);
   }
 }
 
@@ -96,78 +80,5 @@ void Clock::updateTime() {
   parent_->update();
 }
 
-void Clock::setFontScaleFactor(float fontScaleFactor) {
-  largeFontAction_->setChecked(
-      fontScaleFactor > kLargeClockFontScaleFactor - kDelta);
-  mediumFontAction_->setChecked(
-      fontScaleFactor > kMediumClockFontScaleFactor - kDelta &&
-      fontScaleFactor < kMediumClockFontScaleFactor + kDelta);
-  smallFontAction_->setChecked(
-      fontScaleFactor < kSmallClockFontScaleFactor + kDelta);
-}
-
-void Clock::setLargeFont() {
-  setFontScaleFactor(kLargeClockFontScaleFactor);
-  saveConfig();
-}
-
-void Clock::setMediumFont() {
-  setFontScaleFactor(kMediumClockFontScaleFactor);
-  saveConfig();
-}
-
-void Clock::setSmallFont() {
-  setFontScaleFactor(kSmallClockFontScaleFactor);
-  saveConfig();
-}
-
-void Clock::createMenu() {
-  menu_.addSection("Clock");
-  use24HourClockAction_ = menu_.addAction(
-      QString("Use 24-hour Clock"), this,
-      [this] {
-        saveConfig();
-      });
-  use24HourClockAction_->setCheckable(true);
-
-  QMenu* fontFamily = menu_.addMenu(QString("Font Family"));
-  for (const auto& family : getBaseFontFamilies()) {
-    auto fontFamilyAction = fontFamily->addAction(family, this, [this, family]{
-      model_->setClockFontFamily(family);
-      model_->saveAppearanceConfig(true /* repaintOnly */);
-    });
-    fontFamilyAction->setCheckable(true);
-    fontFamilyAction->setActionGroup(&fontFamilyGroup_);
-    fontFamilyAction->setChecked(family == model_->clockFontFamily());
-  }
-
-  QMenu* fontSize = menu_.addMenu(QString("Font Size"));
-  largeFontAction_ = fontSize->addAction(QString("Large Font"),
-                                         this,
-                                         SLOT(setLargeFont()));
-  largeFontAction_->setCheckable(true);
-  mediumFontAction_ = fontSize->addAction(QString("Medium Font"),
-                                          this,
-                                          SLOT(setMediumFont()));
-  mediumFontAction_->setCheckable(true);
-  smallFontAction_ = fontSize->addAction(QString("Small Font"),
-                                         this,
-                                         SLOT(setSmallFont()));
-  smallFontAction_->setCheckable(true);
-
-  menu_.addSeparator();
-  parent_->addPanelSettings(&menu_);
-}
-
-void Clock::loadConfig() {
-  use24HourClockAction_->setChecked(model_->use24HourClock());
-  setFontScaleFactor(model_->clockFontScaleFactor());
-}
-
-void Clock::saveConfig() {
-  model_->setUse24HourClock(use24HourClockAction_->isChecked());
-  model_->setClockFontScaleFactor(fontScaleFactor());
-  model_->saveAppearanceConfig(true /* repaintOnly */);
-}
 
 }  // namespace crystaldock

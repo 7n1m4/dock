@@ -35,8 +35,6 @@ VersionChecker::VersionChecker(DockPanel* parent, MultiDockModel* model,
                         minSize, maxSize),
       infoDialog_(QMessageBox::Information, "Version Information",
                   QString{}, QMessageBox::Ok, parent, Qt::Tool) {
-  createMenu();
-
   const QString version = DockPanel::kVersion;
   if (version.toLower().contains("alpha")) {
     setVersionStatus(VersionStatus::Alpha);
@@ -52,12 +50,8 @@ VersionChecker::VersionChecker(DockPanel* parent, MultiDockModel* model,
     connect(timer_, &QTimer::timeout, this, &VersionChecker::checkVersion);
     timer_->start(timerInterval_);
   }
-
-  connect(&menu_, &QMenu::aboutToHide, this,
-          [this]() {
-            parent_->setShowingPopup(false);
-          });
 }
+
 
 void VersionChecker::mousePressEvent(QMouseEvent* e) {
   if (e->button() == Qt::LeftButton) {
@@ -65,8 +59,6 @@ void VersionChecker::mousePressEvent(QMouseEvent* e) {
     QTimer::singleShot(DockPanel::kExecutionDelayMs, this, [this]{
       showVersionInfo();
     });
-  } else if (e->button() == Qt::RightButton) {
-    showPopupMenu(&menu_);
   }
 }
 
@@ -135,31 +127,21 @@ void VersionChecker::setVersionStatus(VersionStatus status) {
   }
 }
 
-void VersionChecker::createMenu() {
-  menu_.addSection("Version Checker");
-  auto* frequencyMenu = menu_.addMenu("Checking Frequency");
-  auto* frequencyGroup = new QActionGroup(this);
-  auto* hourlyAction = frequencyMenu->addAction("Hourly", this, [this](){
-    if (status_ == VersionStatus::UpToDate) {
+void VersionChecker::setCheckingFrequency(int index) {
+  if (status_ != VersionStatus::UpToDate) {
+    return;
+  }
+  switch (index) {
+    case 0:
       timerInterval_ = 60 * 60 * 1000;
-      timer_->start(timerInterval_);
-    }
-  });
-  hourlyAction->setCheckable(true);
-  hourlyAction->setActionGroup(frequencyGroup);
-  hourlyAction->setChecked(true);
-
-  auto* dailyAction = frequencyMenu->addAction("Daily", this, [this](){
-    if (status_ == VersionStatus::UpToDate) {
+      break;
+    case 1:
       timerInterval_ = 24 * 60 * 60 * 1000;
-      timer_->start(timerInterval_);
-    }
-  });
-  dailyAction->setCheckable(true);
-  dailyAction->setActionGroup(frequencyGroup);
-
-  menu_.addSeparator();
-  parent_->addPanelSettings(&menu_);
+      break;
+    default:
+      return;
+  }
+  timer_->start(timerInterval_);
 }
 
 void VersionChecker::showVersionInfo() {

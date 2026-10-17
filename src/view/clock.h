@@ -21,9 +21,6 @@
 
 #include "iconless_dock_item.h"
 
-#include <QAction>
-#include <QActionGroup>
-#include <QMenu>
 #include <QObject>
 #include <QString>
 
@@ -42,45 +39,17 @@ class Clock : public QObject, public IconlessDockItem {
 
   void draw(QPainter* painter) const override;
   void mousePressEvent(QMouseEvent* e) override;
-  void loadConfig() override;
   QString getLabel() const override;
   bool beforeTask(const QString& program) override { return false; }
 
  public slots:
   void updateTime();
 
-  void setFontScaleFactor(float fontScaleFactor);
-  void setLargeFont();
-  void setMediumFont();
-  void setSmallFont();
-
- private:
+private:
   static constexpr float kWhRatio = 2.9;
   static constexpr float kDelta = 0.01;
 
-  float fontScaleFactor() {
-    return largeFontAction_->isChecked()
-        ? kLargeClockFontScaleFactor
-        : mediumFontAction_->isChecked() ? kMediumClockFontScaleFactor
-                                         : kSmallClockFontScaleFactor;
-  }
-
-  // Creates the context menu.
-  void createMenu();
-
-  void saveConfig();
-
   Calendar calendar_;
-
-  // Context menu.
-  QMenu menu_;
-
-  QAction* use24HourClockAction_;
-  QAction* largeFontAction_;
-  QAction* mediumFontAction_;
-  QAction* smallFontAction_;
-
-  QActionGroup fontFamilyGroup_;
 };
 
 }  // namespace crystaldock

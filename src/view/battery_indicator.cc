@@ -32,19 +32,12 @@ BatteryIndicator::BatteryIndicator(DockPanel* parent, MultiDockModel* model,
                         minSize, maxSize),
     updateTimer_(new QTimer(this)),
     process_(nullptr) {
-  createMenu();
-
   // Sets up update timer.
   QTimer::singleShot(500, this, [this]() {
     connect(updateTimer_, &QTimer::timeout, this, &BatteryIndicator::refreshBatteryInfo);
     updateTimer_->start(kUpdateInterval);
     batteryDevice_ = getBatteryDevice();
   });
-
-  connect(&contextMenu_, &QMenu::aboutToHide, this,
-          [this]() {
-            parent_->setShowingPopup(false);
-          });
 }
 
 BatteryIndicator::~BatteryIndicator() {
@@ -62,8 +55,6 @@ void BatteryIndicator::mousePressEvent(QMouseEvent* e) {
                                + kLabel + " component.");
       return;
     }
-  } else if (e->button() == Qt::RightButton) {
-    showPopupMenu(&contextMenu_);
   }
 }
 
@@ -128,12 +119,6 @@ QString BatteryIndicator::getBatteryDevice() {
   // Returns an empty string instead of null string to specify that
   // the battery device was not found.
   return QString("");
-}
-
-void BatteryIndicator::createMenu() {
-  contextMenu_.addSection(kLabel);
-  contextMenu_.addSeparator();
-  parent_->addPanelSettings(&contextMenu_);
 }
 
 void BatteryIndicator::updateUi() {

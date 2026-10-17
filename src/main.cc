@@ -21,6 +21,7 @@
 #include <csignal>
 #include <cstring>
 #include <cstdio>
+#include <cerrno>
 
 // POSIX / glibc specific, only used by the crash handler below.
 #include <execinfo.h>
@@ -29,6 +30,7 @@
 #include <unistd.h>
 
 #include <QApplication>
+#include <QCoreApplication>
 #include <QDir>
 #include <QIcon>
 #include <QSharedMemory>
@@ -195,18 +197,39 @@ int main(int argc, char** argv) {
 
   QApplication app(argc, argv);
 
-  // Enforces single instance.
+  // Enforces single instance. The segment holds the owner's pid so a stale
+  // segment (left behind by a crash) can be told apart from a live dock:
+  // displacing a live one would let `--settings` leak a second dock.
   QSharedMemory sharedMemory;
   sharedMemory.setKey("crystal-dock-key");
-  if (!sharedMemory.create(1 /*byte*/)) {
-    // The failure might have been caused by a previous crash.
-    sharedMemory.attach();
-    sharedMemory.detach();
-    // Now try again.
-    if (!sharedMemory.create(1 /*byte*/)) {
+  if (!sharedMemory.create(sizeof(int))) {
+    bool holderAlive = false;
+    if (sharedMemory.attach(QSharedMemory::ReadOnly)) {
+      if (sharedMemory.lock()) {
+        const int* holderPid =
+            static_cast<const int*>(sharedMemory.constData());
+        // A pid we cannot signal is gone; ESRCH is the stale-segment case.
+        holderAlive = (holderPid != nullptr) && (*holderPid > 0) &&
+                      (kill(*holderPid, 0) == 0 || errno != ESRCH);
+        sharedMemory.unlock();
+      }
+      sharedMemory.detach();
+    }
+    if (holderAlive) {
       std::cerr << "Another instance is already running." << std::endl;
       return -1;
     }
+    // Nobody is alive: the segment is stale, so reclaim it.
+    if (!sharedMemory.create(sizeof(int))) {
+      std::cerr << "Another instance is already running." << std::endl;
+      return -1;
+    }
+  }
+  // Stamp our pid so any later launch can check whether we are still alive.
+  if (sharedMemory.lock()) {
+    *static_cast<int*>(sharedMemory.data()) =
+        QCoreApplication::applicationPid();
+    sharedMemory.unlock();
   }
 
   if (!crystaldock::MultiDockView::checkPlatformSupported(app)) {
@@ -221,7 +244,11 @@ int main(int argc, char** argv) {
   maybeCopyOldConfigOnFirstRun(configDir);
   maybeCopyPresetConfigOnFirstRun(configDir);
   crystaldock::MultiDockModel model(configDir);
-  crystaldock::MultiDockView view(&model);
+  // Handled by the process that already owns the single-instance lock, so a
+  // second `crystal-dock --settings` fails the same way as any second launch.
+  const bool openSettings =
+      QCoreApplication::arguments().contains("--settings");
+  crystaldock::MultiDockView view(&model, openSettings);
 
   view.show();
   return app.exec();

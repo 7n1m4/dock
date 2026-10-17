@@ -39,6 +39,11 @@ class AppearanceSettingsDialog : public QDialog {
 
   void reload() { loadData(); }
 
+  // Makes this dialog usable as a child widget of the settings screen: it is
+  // no longer a standalone tool window, and Ok/Cancel (which would hide the
+  // page it is embedded in) are replaced by Apply/RestoreDefaults.
+  void configureForEmbedding();
+
  public slots:
   void accept() override;
   void buttonClicked(QAbstractButton* button);

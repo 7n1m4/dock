@@ -23,10 +23,9 @@
 
 #include <memory>
 
-#include <QAction>
-#include <QMenu>
 #include <QObject>
 #include <QString>
+#include <QPixmap>
 
 #include "display/window_system.h"
 
@@ -68,22 +67,12 @@ class DesktopSelector : public QObject, public IconBasedDockItem {
     return WindowSystem::currentDesktop() == desktop_.id;
   }
 
-  void createMenu();
-
-  void saveConfig();
-
   DesktopEnv* desktopEnv_;
 
   VirtualDesktopInfo desktop_;
   // The screen that the parent panel is on, 0-based.
   int screen_;
   QSettings* config_;
-
-  // Context (right-click) menu.
-  QMenu menu_;
-
-  QAction* titleAction_;
-  QAction* showDesktopNumberAction_;
 
   int desktopWidth_;
   int desktopHeight_;

@@ -26,6 +26,17 @@ EditKeyboardLayoutsDialog::~EditKeyboardLayoutsDialog() {
   delete ui;
 }
 
+void EditKeyboardLayoutsDialog::configureForEmbedding() {
+  setWindowFlag(Qt::Tool, false);
+  // This dialog wires the button box's accepted() signal straight to
+  // saveData(), so drop that wiring and offer Apply instead: an embedded child
+  // must never close (hide) the page it lives in.
+  disconnect(ui->buttonBox, &QDialogButtonBox::accepted, nullptr, nullptr);
+  ui->buttonBox->setStandardButtons(QDialogButtonBox::Apply);
+  connect(ui->buttonBox, &QDialogButtonBox::clicked, this,
+          [this](QAbstractButton*) { saveData(); });
+}
+
 void EditKeyboardLayoutsDialog::setKeyboardLayouts(
     const std::map<QString, std::vector<KeyboardLayoutInfo>>& keyboardLayouts,
     const std::map<QString, KeyboardLayoutInfo>& keyboardEngines) {

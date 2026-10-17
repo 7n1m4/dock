@@ -51,9 +51,6 @@ class BatteryIndicator : public QObject, public IconBasedDockItem {
   static constexpr char kIcon[] = "battery";
   static constexpr int kUpdateInterval = 1000;  // 1 second.
 
-  // Creates the context menu.
-  void createMenu();
-
   void updateUi();
 
   QString batteryDevice_;
@@ -65,9 +62,6 @@ class BatteryIndicator : public QObject, public IconBasedDockItem {
 
   // upower process.
   QProcess* process_ = nullptr;
-
-  // Right-click context menu.
-  QMenu contextMenu_;
 };
 
 }  // namespace crystaldock

@@ -4,7 +4,9 @@
 #include <map>
 #include <vector>
 
+#include <QAbstractButton>
 #include <QDialog>
+#include <QDialogButtonBox>
 
 namespace Ui {
 class EditKeyboardLayoutsDialog;
@@ -27,6 +29,11 @@ class EditKeyboardLayoutsDialog : public QDialog {
       const std::map<QString, std::vector<KeyboardLayoutInfo>>& keyboardLayouts,
       const std::map<QString, KeyboardLayoutInfo>& keyboardEngines);
   void refreshData();
+
+  // Makes this dialog usable as a child widget of the settings screen. This
+  // dialog wires the button box's accepted() signal directly, so that wiring
+  // is replaced by an Apply button that saves.
+  void configureForEmbedding();
 
  public slots:
   void onLanguageChanged(const QString&);

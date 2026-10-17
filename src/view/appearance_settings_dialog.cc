@@ -54,6 +54,12 @@ AppearanceSettingsDialog::~AppearanceSettingsDialog() {
   delete ui;
 }
 
+void AppearanceSettingsDialog::configureForEmbedding() {
+  setWindowFlag(Qt::Tool, false);
+  ui->buttonBox->setStandardButtons(
+      QDialogButtonBox::Apply | QDialogButtonBox::RestoreDefaults);
+}
+
 void AppearanceSettingsDialog::accept() {
   QDialog::accept();
   saveData();

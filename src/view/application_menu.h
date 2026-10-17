@@ -97,8 +97,6 @@ class ApplicationMenu : public QObject, public IconBasedDockItem {
 
   void resetSearchMenu();
 
-  void createContextMenu();
-
   // The cascading popup menu that contains all application entries.
   QMenu menu_;
   bool showingMenu_;
@@ -116,9 +114,6 @@ class ApplicationMenu : public QObject, public IconBasedDockItem {
   QMenu* searchMenu_;
   QLineEdit* searchText_;
   unsigned int maxNumResults_;
-
-  // Context (right-click) menu.
-  QMenu contextMenu_;
 };
 
 }  // namespace crystaldock

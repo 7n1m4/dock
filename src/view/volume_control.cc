@@ -55,10 +55,6 @@ VolumeControl::VolumeControl(DockPanel* parent, MultiDockModel* model,
           [this]() {
             parent_->setShowingPopup(false);
           });
-  connect(&contextMenu_, &QMenu::aboutToHide, this,
-          [this]() {
-            parent_->setShowingPopup(false);
-          });
 }
 
 VolumeControl::~VolumeControl() {
@@ -136,8 +132,6 @@ void VolumeControl::mousePressEvent(QMouseEvent* e) {
     showPopupMenu(&menu_);
   } else if (e->button() == Qt::MiddleButton) {
     toggleMute();
-  } else if (e->button() == Qt::RightButton) {
-    showPopupMenu(&contextMenu_);
   }
 }
 
@@ -254,33 +248,6 @@ void VolumeControl::createMenu() {
   // Mute toggle
   muteAction_ = menu_.addAction("Mute", this, &VolumeControl::toggleMute);
   muteAction_->setCheckable(true);
-
-  // Context menu
-  contextMenu_.addSection("Volume Control");
-
-  // Scroll step submenu
-  scrollStepMenu_ = contextMenu_.addMenu("Volume Scroll Step");
-  scrollStepGroup_ = new QActionGroup(this);
-
-  scrollStep1Action_ = scrollStepMenu_->addAction("1% (Fine)", this, &VolumeControl::setVolumeScrollStep1);
-  scrollStep1Action_->setCheckable(true);
-  scrollStep1Action_->setActionGroup(scrollStepGroup_);
-
-  scrollStep2Action_ = scrollStepMenu_->addAction("2% (Default)", this, &VolumeControl::setVolumeScrollStep2);
-  scrollStep2Action_->setCheckable(true);
-  scrollStep2Action_->setActionGroup(scrollStepGroup_);
-  scrollStep2Action_->setChecked(true);
-
-  scrollStep5Action_ = scrollStepMenu_->addAction("5% (Coarse)", this, &VolumeControl::setVolumeScrollStep5);
-  scrollStep5Action_->setCheckable(true);
-  scrollStep5Action_->setActionGroup(scrollStepGroup_);
-
-  scrollStep10Action_ = scrollStepMenu_->addAction("10% (Very Coarse)", this, &VolumeControl::setVolumeScrollStep10);
-  scrollStep10Action_->setCheckable(true);
-  scrollStep10Action_->setActionGroup(scrollStepGroup_);
-
-  contextMenu_.addSeparator();
-  parent_->addPanelSettings(&contextMenu_);
 }
 
 void VolumeControl::setVolumeScrollStep1() {
@@ -301,6 +268,25 @@ void VolumeControl::setVolumeScrollStep5() {
 void VolumeControl::setVolumeScrollStep10() {
   model_->setVolumeScrollStep(10);
   model_->saveAppearanceConfig(true);
+}
+
+void VolumeControl::setScrollStep(int percentage) {
+  switch (percentage) {
+    case 1:
+      setVolumeScrollStep1();
+      break;
+    case 2:
+      setVolumeScrollStep2();
+      break;
+    case 5:
+      setVolumeScrollStep5();
+      break;
+    case 10:
+      setVolumeScrollStep10();
+      break;
+    default:
+      break;
+  }
 }
 
 void VolumeControl::updateUi() {

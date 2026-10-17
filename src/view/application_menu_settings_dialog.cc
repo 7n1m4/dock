@@ -41,6 +41,12 @@ ApplicationMenuSettingsDialog::~ApplicationMenuSettingsDialog() {
   delete ui;
 }
 
+void ApplicationMenuSettingsDialog::configureForEmbedding() {
+  setWindowFlag(Qt::Tool, false);
+  ui->buttonBox->setStandardButtons(
+      QDialogButtonBox::Apply | QDialogButtonBox::RestoreDefaults);
+}
+
 void ApplicationMenuSettingsDialog::accept() {
   QDialog::accept();
   saveData();

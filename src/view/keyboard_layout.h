@@ -70,6 +70,17 @@ class KeyboardLayout : public QObject, public IconBasedDockItem {
   void onKeyboardLayoutSelected(QAction* action);
   void setKeyboardLayout(const KeyboardLayoutInfo& layout);
 
+  // The available layouts, as discovered from IBus. Empty until the discovery
+  // process has finished.
+  const std::map<QString, std::vector<KeyboardLayoutInfo>>&
+      availableLayouts() const {
+    return keyboardLayouts_;
+  }
+  const std::map<QString, KeyboardLayoutInfo>&
+      availableEngines() const {
+    return keyboardEngines_;
+  }
+
  private:
   static constexpr char kCommand[] = "ibus";
   static constexpr char kLabel[] = "Keyboard Layout";
@@ -78,9 +89,6 @@ class KeyboardLayout : public QObject, public IconBasedDockItem {
 
   void initKeyboardLayouts();
   void initUserKeyboardLayouts(const QString& activeLayout);
-
-  // Creates the context menu.
-  void createMenu();
 
   // All the available keyboard layouts, as map from languages to list of structs.
   std::map<QString, std::vector<KeyboardLayoutInfo>> keyboardLayouts_;
@@ -96,10 +104,8 @@ class KeyboardLayout : public QObject, public IconBasedDockItem {
   // ibus process.
   QProcess* process_ = nullptr;
 
-  // Left-click volume menu.
+  // Left-click menu.
   QMenu menu_;
-  // Right-click context menu.
-  QMenu contextMenu_;
 };
 
 }  // namespace crystaldock

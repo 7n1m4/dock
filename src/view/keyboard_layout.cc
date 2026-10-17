@@ -44,10 +44,6 @@ KeyboardLayout::KeyboardLayout(DockPanel* parent, MultiDockModel* model,
           [this]() {
             parent_->setShowingPopup(false);
           });
-  connect(&contextMenu_, &QMenu::aboutToHide, this,
-          [this]() {
-            parent_->setShowingPopup(false);
-          });
 }
 
 KeyboardLayout::~KeyboardLayout() {
@@ -81,8 +77,6 @@ void KeyboardLayout::mousePressEvent(QMouseEvent* e) {
       return;
     }
     showPopupMenu(&menu_);
-  } else if (e->button() == Qt::RightButton) {
-    showPopupMenu(&contextMenu_);
   }
 }
 
@@ -194,33 +188,15 @@ void KeyboardLayout::initUserKeyboardLayouts(const QString& activeLayout) {
       userKeyboardLayouts_.push_back(keyboardEngines_[layout]);
     }
   }
-  createMenu();
-
-  QTimer::singleShot(500, this, [this] {
-    setKeyboardLayout(activeKeyboardLayout_);
-  });
-}
-
-void KeyboardLayout::createMenu() {
-  // Left-click menu.
   for (const auto& layout : userKeyboardLayouts_) {
     QAction* action = new QAction(layout.toString(), &menu_);
     action->setData(QVariant::fromValue(layout));
     menu_.addAction(action);
   }
 
-  // Right-click context menu.
-  contextMenu_.addSection(kLabel);
-  contextMenu_.addAction(QIcon::fromTheme("configure"), QString("&Edit Keyboard Layouts"), parent_,
-                  [this] {
-                    parent_->minimize();
-                    QTimer::singleShot(DockPanel::kExecutionDelayMs, this, [this]{
-                      parent_->showEditKeyboardLayoutsDialog();
-                    });
-                  });
-
-  contextMenu_.addSeparator();
-  parent_->addPanelSettings(&contextMenu_);
+  QTimer::singleShot(500, this, [this] {
+    setKeyboardLayout(activeKeyboardLayout_);
+  });
 }
 
 }  // namespace crystaldock

@@ -70,18 +70,12 @@ class WifiManager : public QObject, public IconBasedDockItem {
 
   void updateWifiList();
 
-  // Creates the context menu.
-  void createMenu();
-
   std::vector<WifiNetwork> networks_;
   // nmcli process.
   QProcess* process_ = nullptr;
 
   // Left-click volume menu.
   QMenu menu_;
-  // Right-click context menu.
-  QMenu contextMenu_;
-  QAction* rescanAction_;
 
   WifiConnectionDialog connectionDialog_;
   QMessageBox info_;

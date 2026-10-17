@@ -80,6 +80,11 @@ void LauncherList::dropEvent(QDropEvent* event) {
   }
 }
 
+void EditLaunchersDialog::configureForEmbedding() {
+  setWindowFlag(Qt::Tool, false);
+  ui->buttonBox->setStandardButtons(QDialogButtonBox::Apply);
+}
+
 EditLaunchersDialog::EditLaunchersDialog(QWidget* parent, MultiDockModel* model,
                                          int dockId)
     : QDialog(parent),

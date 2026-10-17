@@ -31,19 +31,12 @@ WifiManager::WifiManager(DockPanel* parent, MultiDockModel* model,
     : IconBasedDockItem(parent, model, kLabel, orientation, kIcon,
                         minSize, maxSize),
       connectionDialog_(parent_, this) {
-  createMenu();
-
   connect(&menu_, &QMenu::triggered, this, &WifiManager::onNetworkSelected);
 
   connect(&menu_, &QMenu::aboutToHide, this,
           [this]() {
             parent_->setShowingPopup(false);
           });
-  connect(&contextMenu_, &QMenu::aboutToHide, this,
-          [this]() {
-            parent_->setShowingPopup(false);
-          });
-
   scanWifiNetworks();
 }
 
@@ -63,8 +56,6 @@ void WifiManager::mousePressEvent(QMouseEvent* e) {
       return;
     }
     showWifiNetworks();
-  } else if (e->button() == Qt::RightButton) {
-    showPopupMenu(&contextMenu_);
   }
 }
 
@@ -196,16 +187,6 @@ void WifiManager::updateWifiList() {
     action->setData(QVariant::fromValue(network));
     menu_.addAction(action);
   }
-}
-
-void WifiManager::createMenu() {
-  contextMenu_.addSection(kLabel);
-  rescanAction_ = contextMenu_.addAction(
-      QIcon::fromTheme("network-wireless"), "Rescan Wi-Fi networks");
-  connect(rescanAction_, &QAction::triggered, this, &WifiManager::rescan);
-
-  contextMenu_.addSeparator();
-  parent_->addPanelSettings(&contextMenu_);
 }
 
 }  // namespace crystaldock

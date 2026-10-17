@@ -23,7 +23,6 @@
 #include <QBrush>
 #include <QColor>
 #include <QFile>
-#include <QIcon>
 #include <QPainter>
 #include <QPixmap>
 #include <QTimer>
@@ -47,14 +46,8 @@ DesktopSelector::DesktopSelector(DockPanel* parent, MultiDockModel* model,
       desktopWidth_(parent->screenGeometry().width()),
       desktopHeight_(parent->screenGeometry().height()),
       hasCustomWallpaper_(false) {
-  createMenu();
-  loadConfig();
   connect(WindowSystem::self(), SIGNAL(desktopNameChanged(std::string_view, std::string_view)),
           this, SLOT(onDesktopNameChanged(std::string_view, std::string_view)));
-  connect(&menu_, &QMenu::aboutToHide, this,
-          [this]() {
-            parent_->setShowingPopup(false);
-          });
 }
 
 void DesktopSelector::draw(QPainter* painter) const {
@@ -91,10 +84,6 @@ void DesktopSelector::mousePressEvent(QMouseEvent* e) {
     } else {
       WindowSystem::setCurrentDesktop(desktop_.id);
     }
-  } else if (e->button() == Qt::RightButton) {
-    // In case other DesktopSelectors have changed the config.
-    showDesktopNumberAction_->setChecked(model_->showDesktopNumber());
-    showPopupMenu(&menu_);
   }
 }
 
@@ -105,12 +94,6 @@ void DesktopSelector::loadConfig() {
     hasCustomWallpaper_ = true;
   }
 
-  showDesktopNumberAction_->setChecked(model_->showDesktopNumber());
-}
-
-void DesktopSelector::saveConfig() {
-  model_->setShowDesktopNumber(showDesktopNumberAction_->isChecked());
-  model_->saveAppearanceConfig(true /* repaintOnly */);
 }
 
 void DesktopSelector::setIconScaled(const QPixmap& icon) {
@@ -126,30 +109,7 @@ void DesktopSelector::onDesktopNameChanged(
     std::string_view desktopId, std::string_view desktopName) {
   if (desktop_.id == desktopId) {
     setLabel(QString::fromStdString(std::string{desktopName}));
-    titleAction_->setText(label_);
   }
-}
-
-void DesktopSelector::createMenu() {
-  titleAction_ = menu_.addSection(label_);
-  if (desktopEnv_->canSetWallpaper()) {
-    menu_.addAction(
-        QIcon::fromTheme("preferences-desktop-wallpaper"),
-        QString("Set Wallpaper for Desktop ") + QString::number(desktop_.number),
-        parent_,
-        [this] {
-          parent_->showWallpaperSettingsDialog(desktop_.number);
-        });
-  }
-  showDesktopNumberAction_ = menu_.addAction(
-      QString("Show Desktop Number"), this,
-      [this] {
-        saveConfig();
-      });
-  showDesktopNumberAction_->setCheckable(true);
-
-  menu_.addSeparator();
-  parent_->addPanelSettings(&menu_);
 }
 
 }  // namespace crystaldock

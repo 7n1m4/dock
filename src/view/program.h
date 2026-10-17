@@ -21,8 +21,6 @@
 
 #include <vector>
 
-#include <QAction>
-#include <QMenu>
 #include <QPixmap>
 #include <QTimer>
 
@@ -70,10 +68,6 @@ class Program : public QObject, public IconBasedDockItem {
 
   void updatePinnedStatus(bool pinned) override {
     pinned_ = pinned;
-    // pinAction_ is only created for app-menu entries and pinned launchers.
-    if (pinAction_ != nullptr) {
-      pinAction_->setChecked(pinned_);
-    }
   }
 
   bool addTask(const WindowInfo* task) override;
@@ -124,12 +118,7 @@ class Program : public QObject, public IconBasedDockItem {
   static constexpr int kBounceIntervalMs = 25;
   static constexpr float kBounceEaseIn = 2.0f;
   static constexpr float kBounceEaseOut = 2.0f;
-
-  void createMenu();
-
   void updateDemandsAttention();
-
-  void updateMenu();
 
   void cycleThroughTasks(bool forward);
 
@@ -140,13 +129,6 @@ class Program : public QObject, public IconBasedDockItem {
   bool isAppMenuEntry_;
   bool pinned_;
   std::vector<ProgramTask> tasks_;
-
-  // Context (right-click) menu.
-  QMenu menu_;
-  QAction* pinAction_ = nullptr;
-  // Always assigned in createMenu(), regardless of the pinned state.
-  QAction* closeAction_;
-
   // Demands attention logic.
   bool demandsAttention_;
   QTimer animationTimer_;
