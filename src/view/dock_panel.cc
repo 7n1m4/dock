@@ -140,7 +140,23 @@ DockPanel::DockPanel(MultiDockView* parent, MultiDockModel* model, int dockId)
 
 void DockPanel::reload() {
   loadAppearanceConfig();
+  // Items are QObjects, so they may be running a nested event loop (e.g. a
+  // QMenu::exec() reached from showPopupMenu()). Erasing them through the
+  // unique_ptrs would destroy them inside that loop, i.e. a use-after-free.
+  // Release them here and let Qt delete them once the nested loop unwinds.
+  for (auto& item : items_) {
+    if (item) {
+      DockItem* rawItem = item.release();
+      QObject* itemObject = dynamic_cast<QObject*>(rawItem);
+      if (itemObject) {
+        itemObject->deleteLater();
+      } else {
+        delete rawItem;
+      }
+    }
+  }
   items_.clear();
+  activeItem_ = -1;
   initUi();
   setMask();
 }
@@ -148,8 +164,18 @@ void DockPanel::reload() {
 void DockPanel::refresh() {
   for (int i = 0; i < itemCount(); ++i) {
     if (items_[i]->shouldBeRemoved()) {
+      // Defer the destruction: the item may be running a nested event loop
+      // (its context menu's exec()) right now, and destroying it from here
+      // would free it under that loop's feet.
+      DockItem* rawItem = items_[i].release();
       items_.erase(items_.begin() + i);
+      if (QObject* itemObject = dynamic_cast<QObject*>(rawItem)) {
+        itemObject->deleteLater();
+      } else {
+        delete rawItem;
+      }
       resizeTaskManager();
+      activeItem_ = -1;
       return;
     }
   }
@@ -191,11 +217,21 @@ void DockPanel::togglePager() {
 }
 
 void DockPanel::setScreen(int screen) {
+  const auto screens = WindowSystem::screens();
+  if (screen < 0 || screen >= static_cast<int>(screens.size())) {
+    // The saved screen index is no longer valid (monitor unplugged or a
+    // stale config). Fall back to the first screen so that the panel still
+    // has usable geometry instead of dereferencing out of bounds.
+    screen = 0;
+    if (screens.empty()) {
+      return;
+    }
+  }
   screen_ = screen;
   for (int i = 0; i < static_cast<int>(screenActions_.size()); ++i) {
     screenActions_[i]->setChecked(i == screen);
   }
-  screenGeometry_ = WindowSystem::screens()[screen]->geometry();
+  screenGeometry_ = screens[screen]->geometry();
   screenOutput_ = WindowSystem::getWlOutputForScreen(screen);
   WindowSystem::setScreen(this, screen);
 }
@@ -1263,7 +1299,18 @@ void DockPanel::reloadTasks() {
   }
 
   const int itemsToKeep = applicationMenuItemCount() + pagerItemCount();
-  items_.resize(itemsToKeep);
+  // Truncate the tasks part, deferring destruction like refresh() does.
+  // resize() would destroy the items right here, which is unsafe because an
+  // item may be running its nested menu loop.
+  while (itemCount() > itemsToKeep) {
+    DockItem* rawItem = items_.back().release();
+    items_.pop_back();
+    if (QObject* itemObject = dynamic_cast<QObject*>(rawItem)) {
+      itemObject->deleteLater();
+    } else {
+      delete rawItem;
+    }
+  }
   initLaunchers();
   initTasks();
   initTrash();
@@ -1273,6 +1320,7 @@ void DockPanel::reloadTasks() {
   initKeyboardLayout();
   initVersionChecker();
   initClock();
+  activeItem_ = -1;
   resizeTaskManager();
   if (WindowSystem::hasAutoHideManager() && intellihideShouldHide()) {
     setAutoHide();
@@ -1337,8 +1385,16 @@ void DockPanel::removeTask(void* window) {
   for (int i = 0; i < itemCount(); ++i) {
     if (items_[i]->removeTask(window)) {
       if (items_[i]->shouldBeRemoved()) {
+        // Defer the destruction, see refresh() for the reasoning.
+        DockItem* rawItem = items_[i].release();
         items_.erase(items_.begin() + i);
+        if (QObject* itemObject = dynamic_cast<QObject*>(rawItem)) {
+          itemObject->deleteLater();
+        } else {
+          delete rawItem;
+        }
         resizeTaskManager();
+        activeItem_ = -1;
       }
       return;
     }
@@ -1626,6 +1682,11 @@ void DockPanel::updateLayout() {
 }
 
 void DockPanel::updateLayout(int x, int y) {
+  if (items_.empty()) {
+    // Nothing to lay out (e.g. no items configured at all).
+    return;
+  }
+
   if (isEntering_) {
     for (const auto& item : items_) {
       item->startSize_ = item->size_;
