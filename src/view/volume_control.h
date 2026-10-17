@@ -57,6 +57,9 @@ class VolumeControl : public QObject, public IconBasedDockItem {
   void setVolumeScrollStep5();
   void setVolumeScrollStep10();
 
+  // Sets the scroll step to 1, 2, 5 or 10 percent. Any other value is ignored.
+  void setScrollStep(int percentage);
+
  private:
   static constexpr char kCommand[] = "pactl";
   static constexpr int kUpdateInterval = 1000;
@@ -82,18 +85,8 @@ class VolumeControl : public QObject, public IconBasedDockItem {
   // Left-click volume menu.
   QMenu menu_;
   QSlider* volumeSlider_;
-  // Right-click context menu.
-  QMenu contextMenu_;
   QAction* muteAction_;
   QAction* audioSettingsAction_;
-
-  // Scroll step submenu.
-  QMenu* scrollStepMenu_;
-  QAction* scrollStep1Action_;
-  QAction* scrollStep2Action_;
-  QAction* scrollStep5Action_;
-  QAction* scrollStep10Action_;
-  QActionGroup* scrollStepGroup_;
 };
 
 }  // namespace crystaldock

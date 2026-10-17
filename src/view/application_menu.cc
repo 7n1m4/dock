@@ -61,17 +61,11 @@ ApplicationMenu::ApplicationMenu(
   loadConfig();
   buildMenu();
 
-  createContextMenu();
-
   connect(&menu_, &QMenu::aboutToHide, this,
           [this]() {
             showingMenu_ = false;
             parent_->setShowingPopup(false);
             parent_->update();
-          });
-  connect(&contextMenu_, &QMenu::aboutToHide, this,
-          [this]() {
-            parent_->setShowingPopup(false);
           });
   connect(model_, SIGNAL(applicationMenuConfigChanged()),
           this, SLOT(reloadMenu()));
@@ -116,8 +110,6 @@ void ApplicationMenu::mousePressEvent(QMouseEvent *e) {
     const int x = parent_->isBottom() && parent_->is3D()
         ? left_ : left_ - parent_->itemSpacing();
     menu_.exec(parent_->mapToGlobal(QPoint(x, top_)));
-  } else if (e->button() == Qt::RightButton) {
-    showPopupMenu(&contextMenu_);
   }
 }
 
@@ -155,7 +147,9 @@ void ApplicationMenu::searchApps(const QString& searchText_) {
 
 bool ApplicationMenu::eventFilter(QObject* object, QEvent* event) {
   if (event->type() == QEvent::MouseButtonPress) {
-    auto* activeItem = (dynamic_cast<QMenu*>(object))->activeAction();
+    auto* menu = dynamic_cast<QMenu*>(object);
+    if (!menu) return QObject::eventFilter(object, event);
+    auto* activeItem = menu->activeAction();
     QMouseEvent* mouseEvent = dynamic_cast<QMouseEvent*>(event);
     if (mouseEvent && mouseEvent->button() == Qt::LeftButton && activeItem) {
       startMousePos_ = mouseEvent->pos();
@@ -303,21 +297,6 @@ void ApplicationMenu::resetSearchMenu() {
 
 QIcon ApplicationMenu::loadIcon(const QString &icon) {
   return QIcon::fromTheme(icon);
-}
-
-void ApplicationMenu::createContextMenu() {
-  contextMenu_.addSection("Application Menu");
-  contextMenu_.addAction(QIcon::fromTheme("configure"),
-                         QString("Application Menu &Settings"),
-                         parent_,
-                         [this] {
-                           parent_->minimize();
-                           QTimer::singleShot(DockPanel::kExecutionDelayMs, [this]{
-                             parent_->showApplicationMenuSettingsDialog();
-                           });
-                         });
-  contextMenu_.addSeparator();
-  parent_->addPanelSettings(&contextMenu_);
 }
 
 }  // namespace crystaldock

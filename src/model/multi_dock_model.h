@@ -19,6 +19,7 @@
 #ifndef CRYSTALDOCK_MULTI_DOCK_MODEL_H_
 #define CRYSTALDOCK_MULTI_DOCK_MODEL_H_
 
+#include <algorithm>
 #include <memory>
 #include <unordered_map>
 #include <utility>
@@ -122,6 +123,19 @@ class MultiDockModel : public QObject {
 
   // Returns the number of docks.
   int dockCount() const { return dockConfigs_.size(); }
+
+  // Returns the IDs of all docks. Dock IDs are not necessarily contiguous,
+  // e.g. after a panel has been removed, so callers should iterate this
+  // instead of assuming 1..dockCount().
+  std::vector<int> dockIds() const {
+    std::vector<int> ids;
+    ids.reserve(dockConfigs_.size());
+    for (const auto& [dockId, config] : dockConfigs_) {
+      ids.push_back(dockId);
+    }
+    std::sort(ids.begin(), ids.end());
+    return ids;
+  }
 
   // Adds a new dock in the specified position and screen.
   void addDock(PanelPosition position, int screen, PanelVisibility visibility,

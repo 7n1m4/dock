@@ -19,11 +19,9 @@
 #ifndef CRYSTALDOCK_TRASH_H_
 #define CRYSTALDOCK_TRASH_H_
 
-#include <QAction>
 #include <QDragEnterEvent>
 #include <QDropEvent>
 #include <QFileSystemWatcher>
-#include <QMenu>
 #include <QMimeData>
 #include <QObject>
 #include <QString>
@@ -52,6 +50,14 @@ class Trash : public QObject, public IconBasedDockItem {
   void setAcceptDrops(bool accept);
   bool canAcceptDrop(const QMimeData* mimeData) const;
 
+  // Whether the trash has no files in it.
+  bool isTrashEmpty() const;
+
+ signals:
+  // Emitted when the trash flips between empty and non-empty, so consumers
+  // (e.g. the settings screen's Empty Trash button) can update without polling.
+  void trashStateChanged(bool empty);
+
  public slots:
   void updateTrashState();
   void emptyTrash();
@@ -61,9 +67,7 @@ class Trash : public QObject, public IconBasedDockItem {
   void dropEvent(QDropEvent* event);
 
  private:
-  void createMenu();
   void moveToTrash(const QStringList& filePaths);
-  bool isTrashEmpty() const;
   QString getTrashPath() const;
   QString getTrashInfoPath() const;
   QString getTrashFilesPath() const;
@@ -75,11 +79,6 @@ class Trash : public QObject, public IconBasedDockItem {
   QString trashFilesPath_;
   
   QFileSystemWatcher* trashWatcher_;
-  
-  QMenu menu_;
-  QAction* emptyTrashAction_;
-  QAction* openTrashAction_;
-  QAction* restoreAction_;
 
   bool isEmpty_;
   bool acceptingDrop_;

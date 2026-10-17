@@ -17,14 +17,34 @@
  */
 
 #include <iostream>
+#include <unordered_map>
 
-#include <qpa/qplatformwindow_p.h>
+// QtGui's private QPA headers (needed for the Wayland surface of a window) are
+// not exposed as a private include directory, so include the file directly.
+#include <QtGui/qpa/qplatformwindow_p.h>
 
 #include "kde_auto_hide_manager.h"
 
 namespace crystaldock {
 
 kde_screen_edge_manager_v1* KdeAutoHideManager::screen_edge_manager_;
+
+namespace {
+
+// The auto-hide screen edge object created for a surface, and the screen border
+// it was created for. A surface can only ever have one auto-hide screen edge
+// object: creating a second one for the same surface makes the compositor raise
+// the already_constructured protocol error, which is fatal for the client. So
+// the object is cached per surface and reused (or re-created when the panel
+// moves to another screen border).
+struct AutoHideEdge {
+  kde_auto_hide_screen_edge_v1* edge;
+  kde_screen_edge_manager_v1_border border;
+};
+
+std::unordered_map<struct wl_surface*, AutoHideEdge> auto_hide_edges_;
+
+}  // namespace
 
 /* static */ KdeAutoHideManager* KdeAutoHideManager::self() {
   static KdeAutoHideManager self;
@@ -73,16 +93,31 @@ kde_screen_edge_manager_v1* KdeAutoHideManager::screen_edge_manager_;
       border = KDE_SCREEN_EDGE_MANAGER_V1_BORDER_RIGHT;
       break;
     }
-  auto* screen_edge = kde_screen_edge_manager_v1_get_auto_hide_screen_edge(
-      screen_edge_manager_, border, surface);
-  if (!screen_edge) {
-    std::cerr << "Failed to get Auto Hide screen edge object" << std::endl;
-    return;
+  auto& cached = auto_hide_edges_[surface];
+  if (cached.edge == nullptr || cached.border != border) {
+    // Reuse the cached object while it is for the same surface and border.
+    // Re-creating it for a surface that already has one would trigger the
+    // compositor's already_constructured (fatal) protocol error.
+    if (cached.edge != nullptr) {
+      kde_auto_hide_screen_edge_v1_destroy(cached.edge);
+      cached.edge = nullptr;
+      cached.border = border;
+    }
+    auto* screen_edge = kde_screen_edge_manager_v1_get_auto_hide_screen_edge(
+        screen_edge_manager_, border, surface);
+    if (!screen_edge) {
+      auto_hide_edges_.erase(surface);
+      std::cerr << "Failed to get Auto Hide screen edge object" << std::endl;
+      return;
+    }
+    cached.edge = screen_edge;
+    cached.border = border;
   }
+
   if (on) {
-    kde_auto_hide_screen_edge_v1_activate(screen_edge);
+    kde_auto_hide_screen_edge_v1_activate(cached.edge);
   } else {
-    kde_auto_hide_screen_edge_v1_deactivate(screen_edge);
+    kde_auto_hide_screen_edge_v1_deactivate(cached.edge);
   }
 }
 

@@ -44,10 +44,6 @@ KeyboardLayout::KeyboardLayout(DockPanel* parent, MultiDockModel* model,
           [this]() {
             parent_->setShowingPopup(false);
           });
-  connect(&contextMenu_, &QMenu::aboutToHide, this,
-          [this]() {
-            parent_->setShowingPopup(false);
-          });
 }
 
 KeyboardLayout::~KeyboardLayout() {
@@ -81,8 +77,6 @@ void KeyboardLayout::mousePressEvent(QMouseEvent* e) {
       return;
     }
     showPopupMenu(&menu_);
-  } else if (e->button() == Qt::RightButton) {
-    showPopupMenu(&contextMenu_);
   }
 }
 
@@ -103,7 +97,7 @@ void KeyboardLayout::setKeyboardLayout(const KeyboardLayoutInfo& layout) {
     return;
   }
 
-  process_ = new QProcess(parent_);
+  process_ = new QProcess(this);
   connect(process_, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
           [this, layout](int exitCode, QProcess::ExitStatus exitStatus) {
             // Somehow IBus returns 1 here even when it succeeded.
@@ -122,7 +116,7 @@ void KeyboardLayout::initKeyboardLayouts() {
     return;
   }
 
-  process_ = new QProcess(parent_);
+  process_ = new QProcess(this);
   connect(process_, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
           [this](int exitCode, QProcess::ExitStatus exitStatus) {
             if (exitCode == 0) {
@@ -158,7 +152,7 @@ void KeyboardLayout::initKeyboardLayouts() {
                 initUserKeyboardLayouts(activeLayout);
               } else {
                 // Gets the currently active keyboard layout.
-                QProcess* process = new QProcess(parent_);
+                QProcess* process = new QProcess(this);
                 connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
                     [this, process](int exitCode, QProcess::ExitStatus exitStatus) {
                       if (exitCode == 0) {
@@ -194,33 +188,15 @@ void KeyboardLayout::initUserKeyboardLayouts(const QString& activeLayout) {
       userKeyboardLayouts_.push_back(keyboardEngines_[layout]);
     }
   }
-  createMenu();
-
-  QTimer::singleShot(500, this, [this] {
-    setKeyboardLayout(activeKeyboardLayout_);
-  });
-}
-
-void KeyboardLayout::createMenu() {
-  // Left-click menu.
   for (const auto& layout : userKeyboardLayouts_) {
     QAction* action = new QAction(layout.toString(), &menu_);
     action->setData(QVariant::fromValue(layout));
     menu_.addAction(action);
   }
 
-  // Right-click context menu.
-  contextMenu_.addSection(kLabel);
-  contextMenu_.addAction(QIcon::fromTheme("configure"), QString("&Edit Keyboard Layouts"), parent_,
-                  [this] {
-                    parent_->minimize();
-                    QTimer::singleShot(DockPanel::kExecutionDelayMs, [this]{
-                      parent_->showEditKeyboardLayoutsDialog();
-                    });
-                  });
-
-  contextMenu_.addSeparator();
-  parent_->addPanelSettings(&contextMenu_);
+  QTimer::singleShot(500, this, [this] {
+    setKeyboardLayout(activeKeyboardLayout_);
+  });
 }
 
 }  // namespace crystaldock

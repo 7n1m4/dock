@@ -37,14 +37,20 @@ class VersionChecker : public QObject, public IconBasedDockItem {
   bool beforeTask(const QString& program) override { return false; }
   void mousePressEvent(QMouseEvent* e) override;
 
- private:
+  // The frequency currently in effect, in milliseconds.
+  uint32_t timerInterval() const { return timerInterval_; }
+
+ public slots:
+  // Sets the checking frequency. Only the two values the dock ever offered
+  // (hourly, daily) are supported; anything else is ignored.
+  void setCheckingFrequency(int index);
+
+private:
   void checkVersion();
   void setVersionStatus(VersionStatus status);
-  void createMenu();
   void showVersionInfo();
 
   VersionStatus status_;
-  QMenu menu_;
   QTimer* timer_ = nullptr;
   uint32_t timerInterval_ = 60 * 60 * 1000;  // hourly.
   QMessageBox infoDialog_;

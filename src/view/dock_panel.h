@@ -26,10 +26,8 @@
 #include <QDragEnterEvent>
 #include <QDragMoveEvent>
 #include <QDropEvent>
-#include <QMenu>
 #include <QMessageBox>
 #include <QMouseEvent>
-#include <QPaintEvent>
 #include <QPoint>
 #include <QRect>
 #include <QSize>
@@ -37,7 +35,6 @@
 #include <QTimer>
 #include <QWheelEvent>
 #include <QWidget>
-
 #include <display/window_system.h>
 #include <model/multi_dock_model.h>
 
@@ -53,6 +50,11 @@
 namespace crystaldock {
 
 class MultiDockView;
+class Trash;
+class WifiManager;
+class KeyboardLayout;
+class VersionChecker;
+class VolumeControl;
 
 // A dock panel. The user can have multiple dock panels at the same time.
 class DockPanel : public QWidget {
@@ -82,8 +84,6 @@ class DockPanel : public QWidget {
   PanelPosition position() const { return position_; }
 
   QRect screenGeometry() { return screenGeometry_; }
-
-  void addPanelSettings(QMenu* menu);
 
   int itemSpacing() { return itemSpacing_; }
 
@@ -122,6 +122,14 @@ class DockPanel : public QWidget {
   // Sets whether the dock is showing some popup menu.
   void setShowingPopup(bool showingPopup);
 
+  // Finds the Trash / Wi-Fi Manager item on this panel, if the corresponding
+  // feature is enabled. Returns nullptr otherwise.
+  Trash* trash() const;
+  WifiManager* wifiManager() const;
+  KeyboardLayout* keyboardLayout() const;
+  VersionChecker* versionChecker() const;
+  VolumeControl* volumeControl() const;
+
  public slots:
   // Reloads the items and updates the dock.
   void reload();
@@ -146,6 +154,27 @@ class DockPanel : public QWidget {
   void updatePosition(PanelPosition position);
 
   void updateVisibility(PanelVisibility visibility);
+
+  // Panel settings for the settings screen (not backed by menu actions).
+  // The int overloads let the screen's combo boxes bind directly.
+  // Position, screen and visibility are per-dock, so the id written is this
+  // panel's own.
+  void setPanelPosition(int position) {
+    model_->setPanelPosition(dockId_, static_cast<PanelPosition>(position));
+    updatePosition(static_cast<PanelPosition>(position));
+  }
+
+  void setVisibility(int visibility) {
+    updateVisibility(static_cast<PanelVisibility>(visibility));
+  }
+
+  // Applies a screen index. setScreen() is not a slot, so it needs a forwarding
+  // wrapper to be reachable from a QComboBox.
+  void setPanelScreen(int screen) { setScreen(screen); }
+
+  // Sets one of the 11 per-dock component toggles. Index order matches
+  // kFeatureRows in the settings screen.
+  void setFeatureVisible(int feature, bool visible);
 
   void setAutoHide(bool on = true);
 
@@ -175,7 +204,7 @@ class DockPanel : public QWidget {
   }
 
   void toggleTaskManager() {
-    model_->setShowTaskManager(dockId_, taskManagerAction_->isChecked());
+    model_->setShowTaskManager(dockId_, !showTaskManager());
     reload();
     saveDockConfig();
   }
@@ -239,10 +268,8 @@ class DockPanel : public QWidget {
   // These are for global appearance settings.
   // Dock-specific settings are activated from menu items on the context menu
   // directly.
-  void showAppearanceSettingsDialog();
   void showEditKeyboardLayoutsDialog();
   void showEditLaunchersDialog();
-  void showApplicationMenuSettingsDialog();
   void showWallpaperSettingsDialog(int desktop);
   void showTaskManagerSettingsDialog();
 
@@ -293,7 +320,6 @@ class DockPanel : public QWidget {
   void setVisibility(PanelVisibility visibility);
 
   void setPanelStyle(PanelStyle panelStyle);
-
   int itemCount() const { return static_cast<int>(items_.size()); }
 
   int applicationMenuItemCount() const { return showApplicationMenu_ ? 1 : 0; }
@@ -309,9 +335,6 @@ class DockPanel : public QWidget {
   bool showTaskManager() { return model_->showTaskManager(dockId_); }
 
   void initUi();
-
-  void createMenu();
-
   void loadDockConfig();
   void saveDockConfig();
   void loadAppearanceConfig();
@@ -370,6 +393,10 @@ class DockPanel : public QWidget {
 
   // Sets the visibility and mouse event region mask appropriately.
   void setMask();
+
+  // Wakes the panel when the pointer is already on top of it while it is hidden
+  // by its own mask, i.e. when no enter/motion event will ever arrive to do so.
+  void recoverIfPointerIsOverHiddenDock();
 
   // Updates the active item given the mouse position.
   void updateActiveItem(int x, int y);
@@ -441,35 +468,6 @@ class DockPanel : public QWidget {
   std::vector<std::unique_ptr<DockItem>> items_;
   int activeItem_ = -1;
 
-  // Context (right-click) menu.
-  QMenu menu_;
-  QAction* positionTop_;
-  QAction* positionBottom_;
-  QAction* positionLeft_;
-  QAction* positionRight_;
-  QAction* visibilityAlwaysVisibleAction_;
-  QAction* visibilityIntelligentAutoHideAction_;
-  QAction* visibilityAutoHideAction_;
-  QAction* visibilityAlwaysOnTopAction_;
-
-  QAction* applicationMenuAction_;
-  QAction* pagerAction_;
-  QAction* taskManagerAction_;
-  QAction* trashAction_;
-  QAction* wifiManagerAction_;
-  QAction* volumeControlAction_;
-  QAction* batteryIndicatorAction_;
-  QAction* keyboardLayoutAction_;
-  QAction* versionCheckerAction_;
-  QAction* clockAction_;
-
-  QAction* floatingStyleAction_;
-  QAction* glass3DStyleAction_;
-  QAction* glass2DStyleAction_;
-  QAction* flat2DStyleAction_;
-  QAction* metal2DStyleAction_;
-  // Actions to set the dock on a specific screen.
-  std::vector<QAction*> screenActions_;
 
   QMessageBox aboutDialog_;
   AddPanelDialog addPanelDialog_;

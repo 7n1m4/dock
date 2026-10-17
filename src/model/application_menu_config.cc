@@ -129,6 +129,10 @@ void ApplicationMenuConfig::clearEntries() {
   shortAppIds_.clear();
   wmClasses_.clear();
   names_.clear();
+  // commands_ also holds pointers into the entries' storage, so it must be
+  // cleared as well -- otherwise findApplication() could return a dangling
+  // pointer to an entry whose category list has just been cleared.
+  commands_.clear();
 }
 
 bool ApplicationMenuConfig::loadEntries() {

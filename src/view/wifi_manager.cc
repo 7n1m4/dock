@@ -31,19 +31,12 @@ WifiManager::WifiManager(DockPanel* parent, MultiDockModel* model,
     : IconBasedDockItem(parent, model, kLabel, orientation, kIcon,
                         minSize, maxSize),
       connectionDialog_(parent_, this) {
-  createMenu();
-
   connect(&menu_, &QMenu::triggered, this, &WifiManager::onNetworkSelected);
 
   connect(&menu_, &QMenu::aboutToHide, this,
           [this]() {
             parent_->setShowingPopup(false);
           });
-  connect(&contextMenu_, &QMenu::aboutToHide, this,
-          [this]() {
-            parent_->setShowingPopup(false);
-          });
-
   scanWifiNetworks();
 }
 
@@ -63,8 +56,6 @@ void WifiManager::mousePressEvent(QMouseEvent* e) {
       return;
     }
     showWifiNetworks();
-  } else if (e->button() == Qt::RightButton) {
-    showPopupMenu(&contextMenu_);
   }
 }
 
@@ -77,7 +68,7 @@ void WifiManager::onNetworkSelected(QAction* action) {
 void WifiManager::rescan() {
   info_.setText("Rescanning Wi-Fi networks...");
   parent_->minimize();
-  QTimer::singleShot(DockPanel::kExecutionDelayMs, [this]{
+  QTimer::singleShot(DockPanel::kExecutionDelayMs, this, [this]{
     info_.show();
   });
   scanWifiNetworks([this]() {
@@ -90,7 +81,7 @@ void WifiManager::connectWifi(const QString &network, const QString &password) {
     return;
   }
 
-  process_ = new QProcess(parent_);
+  process_ = new QProcess(this);
   connect(process_, &QProcess::started,
           [this, network, password]() {
             process_->write((password + "\n").toStdString().c_str());
@@ -120,7 +111,7 @@ void WifiManager::disconnectWifi(const QString &network) {
     return;
   }
 
-  process_ = new QProcess(parent_);
+  process_ = new QProcess(this);
   connect(process_, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
           [this, network](int exitCode, QProcess::ExitStatus exitStatus) {
             if (exitCode == 0) {
@@ -144,7 +135,7 @@ void WifiManager::scanWifiNetworks(std::function<void()> onSuccess) {
     return;
   }
 
-  process_ = new QProcess(parent_);
+  process_ = new QProcess(this);
   connect(process_, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
           [this, onSuccess](int exitCode, QProcess::ExitStatus exitStatus) {
             if (exitCode == 0) {
@@ -196,16 +187,6 @@ void WifiManager::updateWifiList() {
     action->setData(QVariant::fromValue(network));
     menu_.addAction(action);
   }
-}
-
-void WifiManager::createMenu() {
-  contextMenu_.addSection(kLabel);
-  rescanAction_ = contextMenu_.addAction(
-      QIcon::fromTheme("network-wireless"), "Rescan Wi-Fi networks");
-  connect(rescanAction_, &QAction::triggered, this, &WifiManager::rescan);
-
-  contextMenu_.addSeparator();
-  parent_->addPanelSettings(&contextMenu_);
 }
 
 }  // namespace crystaldock

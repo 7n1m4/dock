@@ -98,8 +98,6 @@ DockPanel::DockPanel(MultiDockView* parent, MultiDockModel* model, int dockId)
   setWindowFlag(Qt::FramelessWindowHint);
   setMouseTracking(true);
   setAcceptDrops(true);
-
-  createMenu();
   loadDockConfig();
   loadAppearanceConfig();
   initUi();
@@ -140,7 +138,23 @@ DockPanel::DockPanel(MultiDockView* parent, MultiDockModel* model, int dockId)
 
 void DockPanel::reload() {
   loadAppearanceConfig();
+  // Items are QObjects, so they may be running a nested event loop (e.g. a
+  // QMenu::exec() reached from showPopupMenu()). Erasing them through the
+  // unique_ptrs would destroy them inside that loop, i.e. a use-after-free.
+  // Release them here and let Qt delete them once the nested loop unwinds.
+  for (auto& item : items_) {
+    if (item) {
+      DockItem* rawItem = item.release();
+      QObject* itemObject = dynamic_cast<QObject*>(rawItem);
+      if (itemObject) {
+        itemObject->deleteLater();
+      } else {
+        delete rawItem;
+      }
+    }
+  }
   items_.clear();
+  activeItem_ = -1;
   initUi();
   setMask();
 }
@@ -148,8 +162,18 @@ void DockPanel::reload() {
 void DockPanel::refresh() {
   for (int i = 0; i < itemCount(); ++i) {
     if (items_[i]->shouldBeRemoved()) {
+      // Defer the destruction: the item may be running a nested event loop
+      // (its context menu's exec()) right now, and destroying it from here
+      // would free it under that loop's feet.
+      DockItem* rawItem = items_[i].release();
       items_.erase(items_.begin() + i);
+      if (QObject* itemObject = dynamic_cast<QObject*>(rawItem)) {
+        itemObject->deleteLater();
+      } else {
+        delete rawItem;
+      }
       resizeTaskManager();
+      activeItem_ = -1;
       return;
     }
   }
@@ -191,11 +215,18 @@ void DockPanel::togglePager() {
 }
 
 void DockPanel::setScreen(int screen) {
-  screen_ = screen;
-  for (int i = 0; i < static_cast<int>(screenActions_.size()); ++i) {
-    screenActions_[i]->setChecked(i == screen);
+  const auto screens = WindowSystem::screens();
+  if (screen < 0 || screen >= static_cast<int>(screens.size())) {
+    // The saved screen index is no longer valid (monitor unplugged or a
+    // stale config). Fall back to the first screen so that the panel still
+    // has usable geometry instead of dereferencing out of bounds.
+    screen = 0;
+    if (screens.empty()) {
+      return;
+    }
   }
-  screenGeometry_ = WindowSystem::screens()[screen]->geometry();
+  screen_ = screen;
+  screenGeometry_ = screens[screen]->geometry();
   screenOutput_ = WindowSystem::getWlOutputForScreen(screen);
   WindowSystem::setScreen(this, screen);
 }
@@ -241,11 +272,6 @@ void DockPanel::about() {
   aboutDialog_.exec();
 }
 
-void DockPanel::showAppearanceSettingsDialog() {
-  appearanceSettingsDialog_.reload();
-  appearanceSettingsDialog_.show();
-}
-
 void DockPanel::showEditKeyboardLayoutsDialog() {
   editKeyboardLayoutsDialog_.refreshData();
   editKeyboardLayoutsDialog_.show();
@@ -254,11 +280,6 @@ void DockPanel::showEditKeyboardLayoutsDialog() {
 void DockPanel::showEditLaunchersDialog() {
   editLaunchersDialog_.reload();
   editLaunchersDialog_.show();
-}
-
-void DockPanel::showApplicationMenuSettingsDialog() {
-  applicationMenuSettingsDialog_.reload();
-  applicationMenuSettingsDialog_.show();
 }
 
 void DockPanel::showWallpaperSettingsDialog(int desktop) {
@@ -895,12 +916,16 @@ void DockPanel::wheelEvent(QWheelEvent* e) {
 }
 
 void DockPanel::enterEvent (QEnterEvent* e) {
+  qInfo("DBG ENTER: minimized=%d hidden=%d popup=%d", isMinimized_, isHidden_, isShowingPopup_);
   if (isMinimized_) {
     isEntering_ = true;
   }
 }
 
 void DockPanel::leaveEvent(QEvent* e) {
+  qInfo("DBG LEAVE: minimized=%d hidden=%d popup=%d -> %s",
+        isMinimized_, isHidden_, isShowingPopup_,
+        (isMinimized_ || isShowingPopup_) ? "IGNORED" : "minimizing");
   if (isMinimized_ || isShowingPopup_) {
     return;
   }
@@ -960,162 +985,88 @@ void DockPanel::initUi() {
   }
 }
 
-void DockPanel::addPanelSettings(QMenu* menu) {
-  for (const auto& action : menu_.actions()) {
-    menu->addAction(action);
-  }
-}
-
-void DockPanel::createMenu() {
-  QMenu* panelMenu = menu_.addMenu("&Panel");
-  panelMenu->addAction(QIcon::fromTheme("list-add"), QString("&Add Panel"),
-      this, SLOT(addDock()));
-  panelMenu->addAction(QIcon::fromTheme("edit-copy"), QString("&Clone Panel"),
-      this, SLOT(cloneDock()));
-  panelMenu->addAction(QIcon::fromTheme("edit-delete"), QString("&Remove Panel"),
-      this, SLOT(removeDock()));
-  panelMenu->addSeparator();
-
-  QMenu* extraComponents = panelMenu->addMenu(QString("&Optional Features"));
-  applicationMenuAction_ = extraComponents->addAction(QString("Application Menu"), this,
-      SLOT(toggleApplicationMenu()));
-  applicationMenuAction_->setCheckable(true);
-  pagerAction_ = extraComponents->addAction(QString("Pager"), this,
-      SLOT(togglePager()));
-  pagerAction_->setCheckable(true);
-  taskManagerAction_ = extraComponents->addAction(QString("Task Manager"), this,
-      SLOT(toggleTaskManager()));
-  taskManagerAction_->setCheckable(true);
-  trashAction_ = extraComponents->addAction(QString("Trash"), this,
-      SLOT(toggleTrash()));
-  trashAction_->setCheckable(true);
-  wifiManagerAction_ = extraComponents->addAction(QString("Wi-Fi Manager"), this,
-                                                  SLOT(toggleWifiManager()));
-  wifiManagerAction_->setCheckable(true);
-  volumeControlAction_ = extraComponents->addAction(QString("Volume Control"), this,
-                                                    SLOT(toggleVolumeControl()));
-  volumeControlAction_->setCheckable(true);
-  batteryIndicatorAction_ = extraComponents->addAction(QString("Battery Indicator"), this,
-                                                       SLOT(toggleBatteryIndicator()));
-  batteryIndicatorAction_->setCheckable(true);
-  keyboardLayoutAction_ = extraComponents->addAction(QString("Keyboard Layout"), this,
-                                                     SLOT(toggleKeyboardLayout()));
-  keyboardLayoutAction_->setCheckable(true);
-  versionCheckerAction_ = extraComponents->addAction(QString("Version Checker"), this,
-                                                     SLOT(toggleVersionChecker()));
-  versionCheckerAction_->setCheckable(true);
-  clockAction_ = extraComponents->addAction(QString("Clock"), this,
-                                            SLOT(toggleClock()));
-  clockAction_->setCheckable(true);
-
-  QMenu* position = panelMenu->addMenu(QString("&Position"));
-  positionTop_ = position->addAction(QString("&Top"), this,
-      [this]() { updatePosition(PanelPosition::Top); });
-  positionTop_->setCheckable(true);
-  positionBottom_ = position->addAction(QString("&Bottom"), this,
-      [this]() { updatePosition(PanelPosition::Bottom); });
-  positionBottom_->setCheckable(true);
-  positionLeft_ = position->addAction(QString("&Left"), this,
-      [this]() { updatePosition(PanelPosition::Left); });
-  positionLeft_->setCheckable(true);
-  positionRight_ = position->addAction(QString("&Right"), this,
-      [this]() { updatePosition(PanelPosition::Right); });
-  positionRight_->setCheckable(true);
-
-  const int numScreens = WindowSystem::screens().size();
-  if (numScreens > 1) {
-    QMenu* screen = panelMenu->addMenu(QString("Scr&een"));
-    for (int i = 0; i < numScreens; ++i) {
-      QAction* action = screen->addAction(
-          "Screen " + QString::number(i + 1), this,
-          [this, i]() {
-            changeScreen(i);
-          });
-      action->setCheckable(true);
-      screenActions_.push_back(action);
+Trash* DockPanel::trash() const {
+  for (const auto& item : items_) {
+    if (auto* trash = dynamic_cast<Trash*>(item.get())) {
+      return trash;
     }
   }
+  return nullptr;
+}
 
-  QMenu* visibility = panelMenu->addMenu(QString("&Visibility"));
-  visibilityAlwaysVisibleAction_ = visibility->addAction(
-      QString("Always &Visible"), this,
-      [this]() { updateVisibility(PanelVisibility::AlwaysVisible); });
-  visibilityAlwaysVisibleAction_->setCheckable(true);
-  visibilityIntelligentAutoHideAction_ = visibility->addAction(
-      QString("&Intelligent Auto Hide"), this,
-      [this]() { updateVisibility(PanelVisibility::IntelligentAutoHide); });
-  visibilityIntelligentAutoHideAction_->setCheckable(true);
-  visibilityAutoHideAction_ = visibility->addAction(
-      QString("Auto &Hide"), this,
-      [this]() { updateVisibility(PanelVisibility::AutoHide); });
-  visibilityAutoHideAction_->setCheckable(true);
-  visibilityAlwaysOnTopAction_ = visibility->addAction(
-      QString("Always On &Top"), this,
-      [this]() { updateVisibility(PanelVisibility::AlwaysOnTop); });
-  visibilityAlwaysOnTopAction_->setCheckable(true);
+WifiManager* DockPanel::wifiManager() const {
+  for (const auto& item : items_) {
+    if (auto* wifi = dynamic_cast<WifiManager*>(item.get())) {
+      return wifi;
+    }
+  }
+  return nullptr;
+}
 
-  panelMenu->addSeparator();
-  panelMenu->addAction(QIcon::fromTheme("application-exit"), "E&xit", parent_, SLOT(exit()));
+KeyboardLayout* DockPanel::keyboardLayout() const {
+  for (const auto& item : items_) {
+    if (auto* layout = dynamic_cast<KeyboardLayout*>(item.get())) {
+      return layout;
+    }
+  }
+  return nullptr;
+}
 
-  QMenu* appearanceMenu = menu_.addMenu("&Appearance");
-  appearanceMenu->addAction(
-      QIcon::fromTheme("configure"), QString("Appearance &Settings"), this,
-      [this] {
-        minimize();
-        QTimer::singleShot(DockPanel::kExecutionDelayMs, [this]{
-          showAppearanceSettingsDialog();
-        });
-      });
-  appearanceMenu->addSeparator();
+VersionChecker* DockPanel::versionChecker() const {
+  for (const auto& item : items_) {
+    if (auto* checker = dynamic_cast<VersionChecker*>(item.get())) {
+      return checker;
+    }
+  }
+  return nullptr;
+}
 
-  floatingStyleAction_ = appearanceMenu->addAction(
-      QString("Floating Panel"), this,
-      [this] {
-        changeFloatingStyle();
-      });
-  floatingStyleAction_->setCheckable(true);
-  floatingStyleAction_->setChecked(isFloating());
+VolumeControl* DockPanel::volumeControl() const {
+  for (const auto& item : items_) {
+    if (auto* volume = dynamic_cast<VolumeControl*>(item.get())) {
+      return volume;
+    }
+  }
+  return nullptr;
+}
 
-  glass3DStyleAction_ = appearanceMenu->addAction(
-      QString("Style: Glass 3D"), this,
-      [this] {
-        changePanelStyle(isFloating() ? PanelStyle::Glass3D_Floating
-                                      : PanelStyle::Glass3D_NonFloating);
-      });
-  glass3DStyleAction_->setCheckable(true);
-  glass2DStyleAction_ = appearanceMenu->addAction(
-      QString("Style: Glass 2D"), this,
-      [this] {
-        changePanelStyle(isFloating() ? PanelStyle::Glass2D_Floating
-                                      : PanelStyle::Glass2D_NonFloating);
-      });
-  glass2DStyleAction_->setCheckable(true);
-  flat2DStyleAction_ = appearanceMenu->addAction(
-      QString("Style: Flat 2D"), this,
-      [this] {
-      changePanelStyle(isFloating() ? PanelStyle::Flat2D_Floating
-                                    : PanelStyle::Flat2D_NonFloating);
-      });
-  flat2DStyleAction_->setCheckable(true);
-  metal2DStyleAction_ = appearanceMenu->addAction(
-      QString("Style: Metal 2D"), this,
-      [this] {
-      changePanelStyle(isFloating() ? PanelStyle::Metal2D_Floating
-                                    : PanelStyle::Metal2D_NonFloating);
-      });
-  metal2DStyleAction_->setCheckable(true);
-
-  QMenu* helpMenu = menu_.addMenu(QIcon::fromTheme("help-contents"), "&Help");
-  helpMenu->addAction(QIcon::fromTheme("help-contents"),
-                  QString("Online &Documentation"),
-                  this, SLOT(showOnlineDocumentation()));
-  helpMenu->addAction(QIcon::fromTheme("help-about"), QString("A&bout Crystal Dock"), this,
-      [this] {
-        minimize();
-        QTimer::singleShot(DockPanel::kExecutionDelayMs, [this]{
-          about();
-        });
-      });
+void DockPanel::setFeatureVisible(int feature, bool visible) {
+  switch (feature) {
+    case 0:  // Application Menu
+      showApplicationMenu_ = visible;
+      break;
+    case 1:  // Pager
+      showPager_ = visible;
+      break;
+    case 2:  // Task Manager
+      model_->setShowTaskManager(dockId_, visible);
+      break;
+    case 3:  // Trash
+      showTrash_ = visible;
+      break;
+    case 4:  // Wi-Fi Manager
+      showWifiManager_ = visible;
+      break;
+    case 5:  // Volume Control
+      showVolumeControl_ = visible;
+      break;
+    case 6:  // Battery Indicator
+      showBatteryIndicator_ = visible;
+      break;
+    case 7:  // Keyboard Layout
+      showKeyboardLayout_ = visible;
+      break;
+    case 8:  // Version Checker
+      showVersionChecker_ = visible;
+      break;
+    case 9:  // Clock
+      showClock_ = visible;
+      break;
+    default:
+      return;
+  }
+  reload();
+  saveDockConfig();
 }
 
 void DockPanel::setPosition(PanelPosition position) {
@@ -1123,31 +1074,14 @@ void DockPanel::setPosition(PanelPosition position) {
   orientation_ = (position_ == PanelPosition::Top ||
       position_ == PanelPosition::Bottom)
       ? Qt::Horizontal : Qt::Vertical;
-  positionTop_->setChecked(position == PanelPosition::Top);
-  positionBottom_->setChecked(position == PanelPosition::Bottom);
-  positionLeft_->setChecked(position == PanelPosition::Left);
-  positionRight_->setChecked(position == PanelPosition::Right);
 }
 
 void DockPanel::setVisibility(PanelVisibility visibility) {
   visibility_ = visibility;
-  visibilityAlwaysVisibleAction_->setChecked(
-      visibility_ == PanelVisibility::AlwaysVisible);
-  visibilityIntelligentAutoHideAction_->setChecked(
-      visibility_ == PanelVisibility::IntelligentAutoHide);
-  visibilityAutoHideAction_->setChecked(
-      visibility_ == PanelVisibility::AutoHide);
-  visibilityAlwaysOnTopAction_->setChecked(
-      visibility_ == PanelVisibility::AlwaysOnTop);
 }
 
 void DockPanel::setPanelStyle(PanelStyle panelStyle) {
   panelStyle_ = panelStyle;
-  floatingStyleAction_->setChecked(isFloating());
-  glass3DStyleAction_->setChecked(is3D());
-  glass2DStyleAction_->setChecked(isGlass2D());
-  flat2DStyleAction_->setChecked(isFlat2D());
-  metal2DStyleAction_->setChecked(isMetal2D());
 }
 
 void DockPanel::loadDockConfig() {
@@ -1156,34 +1090,22 @@ void DockPanel::loadDockConfig() {
   setVisibility(model_->visibility(dockId_));
 
   showApplicationMenu_ = model_->showApplicationMenu(dockId_);
-  applicationMenuAction_->setChecked(showApplicationMenu_);
 
   showPager_ = model_->showPager(dockId_) && WindowSystem::hasVirtualDesktopManager();
-  pagerAction_->setVisible(WindowSystem::hasVirtualDesktopManager());
-  pagerAction_->setChecked(showPager_);
-
-  taskManagerAction_->setChecked(model_->showTaskManager(dockId_));
 
   showTrash_ = model_->showTrash(dockId_);
-  trashAction_->setChecked(showTrash_);
 
   showWifiManager_ = model_->showWifiManager(dockId_);
-  wifiManagerAction_->setChecked(showWifiManager_);
 
   showVolumeControl_ = model_->showVolumeControl(dockId_);
-  volumeControlAction_->setChecked(showVolumeControl_);
 
   showBatteryIndicator_ = model_->showBatteryIndicator(dockId_);
-  batteryIndicatorAction_->setChecked(showBatteryIndicator_);
 
   showKeyboardLayout_ = model_->showKeyboardLayout(dockId_);
-  keyboardLayoutAction_->setChecked(showKeyboardLayout_);
 
   showVersionChecker_ = model_->showVersionChecker(dockId_);
-  versionCheckerAction_->setChecked(showVersionChecker_);
 
   showClock_ = model_->showClock(dockId_);
-  clockAction_->setChecked(showClock_);
 }
 
 void DockPanel::saveDockConfig() {
@@ -1192,7 +1114,7 @@ void DockPanel::saveDockConfig() {
   model_->setVisibility(dockId_, visibility_);
   model_->setShowApplicationMenu(dockId_, showApplicationMenu_);
   model_->setShowPager(dockId_, showPager_);
-  model_->setShowTaskManager(dockId_, taskManagerAction_->isChecked());
+  model_->setShowTaskManager(dockId_, model_->showTaskManager(dockId_));
   model_->setShowTrash(dockId_, showTrash_);
   model_->setShowWifiManager(dockId_, showWifiManager_);
   model_->setShowVolumeControl(dockId_, showVolumeControl_);
@@ -1263,7 +1185,18 @@ void DockPanel::reloadTasks() {
   }
 
   const int itemsToKeep = applicationMenuItemCount() + pagerItemCount();
-  items_.resize(itemsToKeep);
+  // Truncate the tasks part, deferring destruction like refresh() does.
+  // resize() would destroy the items right here, which is unsafe because an
+  // item may be running its nested menu loop.
+  while (itemCount() > itemsToKeep) {
+    DockItem* rawItem = items_.back().release();
+    items_.pop_back();
+    if (QObject* itemObject = dynamic_cast<QObject*>(rawItem)) {
+      itemObject->deleteLater();
+    } else {
+      delete rawItem;
+    }
+  }
   initLaunchers();
   initTasks();
   initTrash();
@@ -1273,6 +1206,7 @@ void DockPanel::reloadTasks() {
   initKeyboardLayout();
   initVersionChecker();
   initClock();
+  activeItem_ = -1;
   resizeTaskManager();
   if (WindowSystem::hasAutoHideManager() && intellihideShouldHide()) {
     setAutoHide();
@@ -1337,8 +1271,16 @@ void DockPanel::removeTask(void* window) {
   for (int i = 0; i < itemCount(); ++i) {
     if (items_[i]->removeTask(window)) {
       if (items_[i]->shouldBeRemoved()) {
+        // Defer the destruction, see refresh() for the reasoning.
+        DockItem* rawItem = items_[i].release();
         items_.erase(items_.begin() + i);
+        if (QObject* itemObject = dynamic_cast<QObject*>(rawItem)) {
+          itemObject->deleteLater();
+        } else {
+          delete rawItem;
+        }
         resizeTaskManager();
+        activeItem_ = -1;
       }
       return;
     }
@@ -1619,13 +1561,32 @@ void DockPanel::updateLayout() {
     isMinimized_ = true;
     if (autoHide()) { isHidden_ = true; }
     if (intellihide()) { isHidden_ = intellihideShouldHide(); }
+    qInfo("DBG minimize: hidden=%d minimized=%d leaving=%d entering=%d popup=%d masky=%d",
+          isHidden_, isMinimized_, isLeaving_, isEntering_, isShowingPopup_,
+          isHidden_ && !WindowSystem::hasAutoHideManager() ? 1 : minHeight_);
     update();
     // Here we have to wait a bit before setMask() to avoid visual artifacts.
     QTimer::singleShot(500, [this]{ setMask(); });
+    // Without a Wayland auto-hide manager the hidden panel is reachable only
+    // through the 1-pixel strip that setMask() is about to install. If the
+    // pointer is already inside that strip when it appears -- which is exactly
+    // what happens after dismissing a context menu opened on this panel -- no
+    // enter/motion event is generated for a mask that merely shrank underneath
+    // a stationary pointer, so isEntering_ stays false and the panel can never
+    // expand again. Detect that state directly instead of waiting for an event
+    // that will never come.
+    if (!WindowSystem::hasAutoHideManager() && isHidden_) {
+      QTimer::singleShot(600, this, [this]{ recoverIfPointerIsOverHiddenDock(); });
+    }
   }
 }
 
 void DockPanel::updateLayout(int x, int y) {
+  if (items_.empty()) {
+    // Nothing to lay out (e.g. no items configured at all).
+    return;
+  }
+
   if (isEntering_) {
     for (const auto& item : items_) {
       item->startSize_ = item->size_;
@@ -1740,6 +1701,8 @@ void DockPanel::updateLayout(int x, int y) {
   WindowSystem::setLayer(this, LayerShellQt::Window::LayerTop);
   isMinimized_ = false;
   if (autoHide() || intellihide()) { isHidden_ = false; }
+  qInfo("DBG expand: hidden=%d minimized=%d entering=%d x=%d y=%d",
+        isHidden_, isMinimized_, isEntering_, x, y);
   setMask();
   updateActiveItem(x, y);
   update();
@@ -1851,6 +1814,30 @@ void DockPanel::setStrut(int width) {
   }
 
   WindowSystem::setAnchorAndStrut(this, anchor, width);
+}
+
+void DockPanel::recoverIfPointerIsOverHiddenDock() {
+  const QRect strip = WindowSystem::hasAutoHideManager()
+      ? QRect() : getMinimizedDockGeometry();
+  const bool armed = isMinimized_ && isHidden_ && !isShowingPopup_;
+  qInfo("DBG recover-check: armed=%d strip=%d,%d %dx%d cursor=%d,%d over=%d",
+        armed, strip.x(), strip.y(), strip.width(), strip.height(),
+        QCursor::pos().x(), QCursor::pos().y(),
+        (int)(!strip.isNull() && strip.contains(QCursor::pos())));
+  if (!isMinimized_ || !isHidden_ || isShowingPopup_) {
+    // The panel is already up (or a menu is open); nothing to recover.
+    return;
+  }
+  // QCursor::pos() and getMinimizedDockGeometry() are both in global screen
+  // coordinates, so compare them directly -- no mapTo*() on the rect side.
+  const QPoint globalPos = QCursor::pos();
+  if (!WindowSystem::hasAutoHideManager()
+      && getMinimizedDockGeometry().contains(globalPos)) {
+    // The pointer never left the strip, so no enter event will ever arrive.
+    // Wake the panel as if the pointer had just entered it.
+    isEntering_ = true;
+    updateLayout(mapFromGlobal(globalPos).x(), mapFromGlobal(globalPos).y());
+  }
 }
 
 void DockPanel::setMask() {

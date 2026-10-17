@@ -18,6 +18,7 @@
 
 #include "lxqt_desktop_env.h"
 
+#include <iostream>
 #include <QProcess>
 
 #include <model/multi_dock_model.h>
@@ -68,7 +69,12 @@ std::vector<QString> LxqtDesktopEnv::getDefaultLaunchers() const {
 
 bool LxqtDesktopEnv::setWallpaper(int screen, const QString& wallpaper) {
   // LXQt doesn't support setting different wallpapers for different screens.
-  return QProcess::startDetached("pcmanfm-qt", {"--set-wallpaper=" + wallpaper});
+  const bool started = QProcess::startDetached(
+      "pcmanfm-qt", {"--set-wallpaper=" + wallpaper});
+  if (!started) {
+    std::cerr << "Failed to start pcmanfm-qt to set the wallpaper" << std::endl;
+  }
+  return started;
 }
 
 }  // namespace crystaldock

@@ -28,9 +28,10 @@
 
 namespace crystaldock {
 
-MultiDockView::MultiDockView(MultiDockModel* model)
+MultiDockView::MultiDockView(MultiDockModel* model, bool openSettings)
     : model_(model),
-      desktopEnv_(DesktopEnv::getDesktopEnv()) {
+      desktopEnv_(DesktopEnv::getDesktopEnv()),
+      openSettings_(openSettings) {
   connect(model_, SIGNAL(dockAdded(int)), this, SLOT(onDockAdded(int)));
   connect(model_, SIGNAL(wallpaperChanged(int)), this,
           SLOT(setWallpaper(int)));
@@ -61,6 +62,27 @@ void MultiDockView::show() {
     dock.second->show();
   }
   setWallpaper();
+  if (openSettings_ && !model_->dockIds().empty()) {
+    showSettingsScreen(model_->dockIds().front());
+  }
+}
+
+DockPanel* MultiDockView::panelFor(int dockId) const {
+  if (auto it = docks_.find(dockId); it != docks_.end()) {
+    return it->second.get();
+  }
+  return nullptr;
+}
+
+void MultiDockView::showSettingsScreen(int dockId) {
+  if (!settingsScreen_) {
+    settingsScreen_ = std::make_unique<DockSettingsScreen>(
+        nullptr, model_, dockId, panelFor(dockId), this);
+  } else {
+    settingsScreen_->setTargetPanel(dockId, panelFor(dockId));
+  }
+  settingsScreen_->reload();
+  settingsScreen_->show();
 }
 
 void MultiDockView::exit() {
@@ -70,6 +92,14 @@ void MultiDockView::exit() {
 }
 
 void MultiDockView::onDockAdded(int dockId) {
+  // A dock id can be reused, e.g. after a panel is cloned onto another screen
+  // and the original is deleted later. Delete any existing panel for this id
+  // first so that its unique_ptr does not overwrite ours while its own
+  // deleteLater() is still pending.
+  if (auto it = docks_.find(dockId); it != docks_.end() && it->second) {
+    QObject* panel = it->second.release();
+    panel->deleteLater();
+  }
   docks_[dockId] = std::make_unique<DockPanel>(this, model_, dockId);
   docks_[dockId]->show();
 }
@@ -110,8 +140,19 @@ bool MultiDockView::setWallpaper(int screen) {
 }
 
 void MultiDockView::loadData() {
+  // Same reasoning as onDockAdded(): destroy the panels through Qt, not through
+  // the unique_ptrs, so any pending deleteLater() survives.
+  for (auto& [id, panel] : docks_) {
+    if (panel) {
+      QObject* panelObject = panel.release();
+      panelObject->deleteLater();
+    }
+  }
   docks_.clear();
-  for (int dockId = 1; dockId <= model_->dockCount(); ++dockId) {
+
+  // Dock IDs start from 1, but the model may skip IDs, e.g. when a panel was
+  // removed. Look them up instead of assuming they are contiguous.
+  for (int dockId : model_->dockIds()) {
     docks_[dockId] = std::make_unique<DockPanel>(this, model_, dockId);
   }
 

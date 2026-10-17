@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>DockSettingsScreen</class>
+ <widget class="QDialog" name="DockSettingsScreen">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1000</width>
+    <height>640</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Crystal Dock Settings</string>
+  </property>
+  <layout class="QVBoxLayout" name="mainLayout">
+   <item>
+    <layout class="QHBoxLayout" name="topLayout">
+     <item>
+      <widget class="QLabel" name="panelLabel">
+       <property name="text">
+        <string>Panel:</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="panelSelector"/>
+     </item>
+     <item>
+      <spacer name="topSpacer">
+       <property name="orientation">
+        <enum>Qt::Orientation::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="bodyLayout">
+     <item>
+      <widget class="QListWidget" name="pageList_">
+       <property name="maximumSize">
+        <size>
+         <width>180</width>
+         <height>16777215</height>
+        </size>
+       </property>
+       <property name="viewMode">
+        <enum>QListView::ViewMode::ListMode</enum>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QStackedWidget" name="pages_">
+       <property name="currentIndex">
+        <number>0</number>
+       </property>
+       <widget class="QWidget" name="panelPage">
+        <layout class="QVBoxLayout" name="panelPageLayout"/>
+       </widget>
+       <widget class="QWidget" name="launchersPage">
+        <layout class="QVBoxLayout" name="launchersPageLayout"/>
+       </widget>
+       <widget class="QWidget" name="featuresPage">
+        <layout class="QVBoxLayout" name="featuresPageLayout"/>
+       </widget>
+       <widget class="QWidget" name="appearancePage">
+        <layout class="QVBoxLayout" name="appearancePageLayout"/>
+       </widget>
+       <widget class="QWidget" name="componentsPage">
+        <layout class="QVBoxLayout" name="componentsPageLayout"/>
+       </widget>
+       <widget class="QWidget" name="helpPage">
+        <layout class="QVBoxLayout" name="helpPageLayout"/>
+       </widget>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="orientation">
+      <enum>Qt::Orientation::Horizontal</enum>
+     </property>
+     <property name="standardButtons">
+      <set>QDialogButtonBox::StandardButton::Apply|QDialogButtonBox::StandardButton::Cancel|QDialogButtonBox::StandardButton::Ok|QDialogButtonBox::StandardButton::RestoreDefaults</set>
+     </property>
+     <property name="centerButtons">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

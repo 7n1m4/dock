@@ -56,6 +56,7 @@ set(SRCS
     view/desktop_selector.cc
     view/dock_item.cc
     view/dock_panel.cc
+    view/dock_settings_screen.cc
     view/edit_keyboard_layouts_dialog.cc
     view/edit_launchers_dialog.cc
     view/icon_based_dock_item.cc
@@ -107,6 +108,7 @@ set(SRCS
     view/desktop_selector.h
     view/dock_item.h
     view/dock_panel.h
+    view/dock_settings_screen.h
     view/edit_keyboard_layouts_dialog.h
     view/edit_launchers_dialog.h
     view/icon_based_dock_item.h
@@ -133,6 +135,7 @@ set(SRCS
     view/add_panel_dialog.ui
     view/appearance_settings_dialog.ui
     view/application_menu_settings_dialog.ui
+    view/dock_settings_screen.ui
     view/edit_keyboard_layouts_dialog.ui
     view/edit_launchers_dialog.ui
     view/task_manager_settings_dialog.ui

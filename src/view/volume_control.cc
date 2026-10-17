@@ -55,10 +55,6 @@ VolumeControl::VolumeControl(DockPanel* parent, MultiDockModel* model,
           [this]() {
             parent_->setShowingPopup(false);
           });
-  connect(&contextMenu_, &QMenu::aboutToHide, this,
-          [this]() {
-            parent_->setShowingPopup(false);
-          });
 }
 
 VolumeControl::~VolumeControl() {
@@ -136,8 +132,6 @@ void VolumeControl::mousePressEvent(QMouseEvent* e) {
     showPopupMenu(&menu_);
   } else if (e->button() == Qt::MiddleButton) {
     toggleMute();
-  } else if (e->button() == Qt::RightButton) {
-    showPopupMenu(&contextMenu_);
   }
 }
 
@@ -168,7 +162,7 @@ void VolumeControl::refreshVolumeInfo() {
   }
 
   // Get volume level
-  volumeProcess_ = new QProcess(parent_);
+  volumeProcess_ = new QProcess(this);
   connect(volumeProcess_, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
           [this](int exitCode, QProcess::ExitStatus exitStatus) {
             if (exitCode == 0) {
@@ -187,7 +181,7 @@ void VolumeControl::refreshVolumeInfo() {
             volumeProcess_ = nullptr;
 
             // Check mute status
-            QProcess* muteProcess = new QProcess(parent_);
+            QProcess* muteProcess = new QProcess(this);
             connect(muteProcess, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
                     [this, muteProcess](int exitCode, QProcess::ExitStatus exitStatus) {
                       if (exitCode == 0) {
@@ -207,7 +201,7 @@ void VolumeControl::refreshVolumeInfo() {
 }
 
 void VolumeControl::setVolume(int volume) {
-  QProcess* process = new QProcess(parent_);
+  QProcess* process = new QProcess(this);
   connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
           [process](int exitCode, QProcess::ExitStatus exitStatus) {
             process->deleteLater();
@@ -223,7 +217,7 @@ void VolumeControl::onVolumeSliderChanged(int value) {
 }
 
 void VolumeControl::toggleMute() {
-  QProcess* process = new QProcess(parent_);
+  QProcess* process = new QProcess(this);
   connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
           [process](int exitCode, QProcess::ExitStatus exitStatus) {
             process->deleteLater();
@@ -236,7 +230,11 @@ void VolumeControl::toggleMute() {
 void VolumeControl::createMenu() {
   // Volume menu
 
-  // Volume slider
+  // Volume slider.
+  // Note: the slider has no QWidget parent -- the enclosing QWidgetAction owns
+  // and destroys it (QWidgetAction::setDefaultWidget), and the action is a child
+  // of menu_, which is a child of this item. VolumeControl is a QObject, not a
+  // QWidget, so it cannot be used as a QWidget parent here.
   volumeSlider_ = new QSlider(Qt::Horizontal);
   volumeSlider_->setRange(0, 100);
   volumeSlider_->setValue(currentVolume_);
@@ -250,33 +248,6 @@ void VolumeControl::createMenu() {
   // Mute toggle
   muteAction_ = menu_.addAction("Mute", this, &VolumeControl::toggleMute);
   muteAction_->setCheckable(true);
-
-  // Context menu
-  contextMenu_.addSection("Volume Control");
-
-  // Scroll step submenu
-  scrollStepMenu_ = contextMenu_.addMenu("Volume Scroll Step");
-  scrollStepGroup_ = new QActionGroup(this);
-
-  scrollStep1Action_ = scrollStepMenu_->addAction("1% (Fine)", this, &VolumeControl::setVolumeScrollStep1);
-  scrollStep1Action_->setCheckable(true);
-  scrollStep1Action_->setActionGroup(scrollStepGroup_);
-
-  scrollStep2Action_ = scrollStepMenu_->addAction("2% (Default)", this, &VolumeControl::setVolumeScrollStep2);
-  scrollStep2Action_->setCheckable(true);
-  scrollStep2Action_->setActionGroup(scrollStepGroup_);
-  scrollStep2Action_->setChecked(true);
-
-  scrollStep5Action_ = scrollStepMenu_->addAction("5% (Coarse)", this, &VolumeControl::setVolumeScrollStep5);
-  scrollStep5Action_->setCheckable(true);
-  scrollStep5Action_->setActionGroup(scrollStepGroup_);
-
-  scrollStep10Action_ = scrollStepMenu_->addAction("10% (Very Coarse)", this, &VolumeControl::setVolumeScrollStep10);
-  scrollStep10Action_->setCheckable(true);
-  scrollStep10Action_->setActionGroup(scrollStepGroup_);
-
-  contextMenu_.addSeparator();
-  parent_->addPanelSettings(&contextMenu_);
 }
 
 void VolumeControl::setVolumeScrollStep1() {
@@ -297,6 +268,25 @@ void VolumeControl::setVolumeScrollStep5() {
 void VolumeControl::setVolumeScrollStep10() {
   model_->setVolumeScrollStep(10);
   model_->saveAppearanceConfig(true);
+}
+
+void VolumeControl::setScrollStep(int percentage) {
+  switch (percentage) {
+    case 1:
+      setVolumeScrollStep1();
+      break;
+    case 2:
+      setVolumeScrollStep2();
+      break;
+    case 5:
+      setVolumeScrollStep5();
+      break;
+    case 10:
+      setVolumeScrollStep10();
+      break;
+    default:
+      break;
+  }
 }
 
 void VolumeControl::updateUi() {

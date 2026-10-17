@@ -50,6 +50,13 @@ TaskManagerSettingsDialog::~TaskManagerSettingsDialog() {
   delete ui;
 }
 
+void TaskManagerSettingsDialog::configureForEmbedding() {
+  setWindowFlag(Qt::Tool, false);
+  // This dialog has no resetData(), so there is nothing for RestoreDefaults
+  // to do; only Apply is offered.
+  ui->buttonBox->setStandardButtons(QDialogButtonBox::Apply);
+}
+
 void TaskManagerSettingsDialog::accept() {
   QDialog::accept();
   saveData();

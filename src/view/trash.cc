@@ -48,14 +48,9 @@ Trash::Trash(DockPanel* parent, MultiDockModel* model, Qt::Orientation orientati
   trashPath_ = getTrashPath();
   trashInfoPath_ = getTrashInfoPath();
   trashFilesPath_ = getTrashFilesPath();
-  
-  createMenu();
+
   setupTrashWatcher();
   updateTrashState();
-  connect(&menu_, &QMenu::aboutToHide, this,
-          [this]() {
-            parent_->setShowingPopup(false);
-          });
 }
 
 void Trash::draw(QPainter* painter) const {
@@ -74,8 +69,6 @@ void Trash::draw(QPainter* painter) const {
 void Trash::mousePressEvent(QMouseEvent* e) {
   if (e->button() == Qt::LeftButton) {
     openTrash();
-  } else if (e->button() == Qt::RightButton) {
-    showPopupMenu(&menu_);
   }
 }
 
@@ -86,10 +79,11 @@ QString Trash::getLabel() const {
 void Trash::updateTrashState() {
   bool wasEmpty = isEmpty_;
   isEmpty_ = isTrashEmpty();
-  
+
   if (isEmpty_ != wasEmpty) {
     updateIcon();
     parent_->update();
+    emit trashStateChanged(isEmpty_);
   }
 }
 
@@ -111,7 +105,7 @@ void Trash::emptyTrash() {
 }
 
 void Trash::openTrash() {
-  QProcess* process = new QProcess(parent_);
+  QProcess* process = new QProcess(this);
   connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
           [this, process](int exitCode, QProcess::ExitStatus exitStatus) {
             // Tries to find the default file manager. Falls back to using "xdg-open".
@@ -167,15 +161,6 @@ void Trash::dropEvent(QDropEvent* event) {
     moveToTrash(filePaths);
     event->acceptProposedAction();
   }
-}
-
-void Trash::createMenu() {
-  menu_.addSection(label_);
-  emptyTrashAction_ = menu_.addAction(QIcon::fromTheme("trash-empty"), "Empty Trash");
-  connect(emptyTrashAction_, &QAction::triggered, this, &Trash::emptyTrash);
-
-  menu_.addSeparator();
-  parent_->addPanelSettings(&menu_);
 }
 
 void Trash::moveToTrash(const QStringList& filePaths) {
@@ -238,8 +223,6 @@ QString Trash::getTrashFilesPath() const {
 
 void Trash::updateIcon() {
   setIconName(isEmpty_ ? kEmptyTrashIconName : kFullTrashIconName);
-  
-  emptyTrashAction_->setEnabled(!isEmpty_);
 }
 
 void Trash::setupTrashWatcher() {
