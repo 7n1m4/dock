@@ -86,7 +86,13 @@ QString DesktopEnv::defaultWebBrowser() const {
   process.start("xdg-settings", {"get", "default-web-browser"});
   process.waitForFinished(1000 /*msecs*/);
   QString desktopFile = process.readAllStandardOutput().trimmed();
-  auto appId = desktopFile.first(desktopFile.lastIndexOf('.'));
+  // lastIndexOf() returns -1 when xdg-settings is missing/failed (empty output)
+  // or produced no '.', and QString::first(-1) aborts, so guard the index first.
+  const int extensionPos = desktopFile.lastIndexOf('.');
+  if (extensionPos <= 0) {
+    return "firefox";
+  }
+  auto appId = desktopFile.first(extensionPos);
   return !appId.isEmpty() ? appId : "firefox";
 }
 
