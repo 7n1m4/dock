@@ -1678,6 +1678,17 @@ void DockPanel::updateLayout() {
     update();
     // Here we have to wait a bit before setMask() to avoid visual artifacts.
     QTimer::singleShot(500, [this]{ setMask(); });
+    // Without a Wayland auto-hide manager the hidden panel is reachable only
+    // through the 1-pixel strip that setMask() is about to install. If the
+    // pointer is already inside that strip when it appears -- which is exactly
+    // what happens after dismissing a context menu opened on this panel -- no
+    // enter/motion event is generated for a mask that merely shrank underneath
+    // a stationary pointer, so isEntering_ stays false and the panel can never
+    // expand again. Detect that state directly instead of waiting for an event
+    // that will never come.
+    if (!WindowSystem::hasAutoHideManager() && isHidden_) {
+      QTimer::singleShot(600, this, [this]{ recoverIfPointerIsOverHiddenDock(); });
+    }
   }
 }
 
@@ -1912,6 +1923,23 @@ void DockPanel::setStrut(int width) {
   }
 
   WindowSystem::setAnchorAndStrut(this, anchor, width);
+}
+
+void DockPanel::recoverIfPointerIsOverHiddenDock() {
+  if (!isMinimized_ || !isHidden_ || isShowingPopup_) {
+    // The panel is already up (or a menu is open); nothing to recover.
+    return;
+  }
+  // QCursor::pos() and getMinimizedDockGeometry() are both in global screen
+  // coordinates, so compare them directly -- no mapTo*() on the rect side.
+  const QPoint globalPos = QCursor::pos();
+  if (!WindowSystem::hasAutoHideManager()
+      && getMinimizedDockGeometry().contains(globalPos)) {
+    // The pointer never left the strip, so no enter event will ever arrive.
+    // Wake the panel as if the pointer had just entered it.
+    isEntering_ = true;
+    updateLayout(mapFromGlobal(globalPos).x(), mapFromGlobal(globalPos).y());
+  }
 }
 
 void DockPanel::setMask() {

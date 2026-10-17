@@ -371,6 +371,10 @@ class DockPanel : public QWidget {
   // Sets the visibility and mouse event region mask appropriately.
   void setMask();
 
+  // Wakes the panel when the pointer is already on top of it while it is hidden
+  // by its own mask, i.e. when no enter/motion event will ever arrive to do so.
+  void recoverIfPointerIsOverHiddenDock();
+
   // Updates the active item given the mouse position.
   void updateActiveItem(int x, int y);
 
