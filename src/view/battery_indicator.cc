@@ -86,7 +86,7 @@ void BatteryIndicator::refreshBatteryInfo() {
     return;
   }
 
-  process_ = new QProcess(parent_);
+  process_ = new QProcess(this);
   connect(process_, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
           [this](int exitCode, QProcess::ExitStatus exitStatus) {
             if (exitCode == 0) {

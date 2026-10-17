@@ -111,7 +111,7 @@ void Trash::emptyTrash() {
 }
 
 void Trash::openTrash() {
-  QProcess* process = new QProcess(parent_);
+  QProcess* process = new QProcess(this);
   connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
           [this, process](int exitCode, QProcess::ExitStatus exitStatus) {
             // Tries to find the default file manager. Falls back to using "xdg-open".

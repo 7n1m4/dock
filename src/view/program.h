@@ -70,7 +70,10 @@ class Program : public QObject, public IconBasedDockItem {
 
   void updatePinnedStatus(bool pinned) override {
     pinned_ = pinned;
-    pinAction_->setChecked(pinned_);
+    // pinAction_ is only created for app-menu entries and pinned launchers.
+    if (pinAction_ != nullptr) {
+      pinAction_->setChecked(pinned_);
+    }
   }
 
   bool addTask(const WindowInfo* task) override;
@@ -140,7 +143,8 @@ class Program : public QObject, public IconBasedDockItem {
 
   // Context (right-click) menu.
   QMenu menu_;
-  QAction* pinAction_;
+  QAction* pinAction_ = nullptr;
+  // Always assigned in createMenu(), regardless of the pinned state.
   QAction* closeAction_;
 
   // Demands attention logic.

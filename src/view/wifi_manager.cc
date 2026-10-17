@@ -77,7 +77,7 @@ void WifiManager::onNetworkSelected(QAction* action) {
 void WifiManager::rescan() {
   info_.setText("Rescanning Wi-Fi networks...");
   parent_->minimize();
-  QTimer::singleShot(DockPanel::kExecutionDelayMs, [this]{
+  QTimer::singleShot(DockPanel::kExecutionDelayMs, this, [this]{
     info_.show();
   });
   scanWifiNetworks([this]() {
@@ -90,7 +90,7 @@ void WifiManager::connectWifi(const QString &network, const QString &password) {
     return;
   }
 
-  process_ = new QProcess(parent_);
+  process_ = new QProcess(this);
   connect(process_, &QProcess::started,
           [this, network, password]() {
             process_->write((password + "\n").toStdString().c_str());
@@ -120,7 +120,7 @@ void WifiManager::disconnectWifi(const QString &network) {
     return;
   }
 
-  process_ = new QProcess(parent_);
+  process_ = new QProcess(this);
   connect(process_, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
           [this, network](int exitCode, QProcess::ExitStatus exitStatus) {
             if (exitCode == 0) {
@@ -144,7 +144,7 @@ void WifiManager::scanWifiNetworks(std::function<void()> onSuccess) {
     return;
   }
 
-  process_ = new QProcess(parent_);
+  process_ = new QProcess(this);
   connect(process_, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
           [this, onSuccess](int exitCode, QProcess::ExitStatus exitStatus) {
             if (exitCode == 0) {

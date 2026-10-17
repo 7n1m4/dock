@@ -168,7 +168,7 @@ void Program::mousePressEvent(QMouseEvent* e) {
   if (e->button() == Qt::LeftButton) { // Run the application.
     if (appId_ == kLockScreenId) {
       parent_->leaveEvent(nullptr);
-      QTimer::singleShot(DockPanel::kExecutionDelayMs, [this]() {
+      QTimer::singleShot(DockPanel::kExecutionDelayMs, this, [this]() {
         launch();
       });
     } else if (appId_ == kShowDesktopId) {
@@ -315,6 +315,7 @@ void Program::launch() {
   parent_->update();
   launch(command_);
   QTimer::singleShot(kLaunchingAcknowledgementDurationMs,
+                     this,
                      [this] {
                        launching_ = false; parent_->update();
                      });
@@ -335,6 +336,15 @@ void Program::pinUnpin() {
 
 void Program::launch(const QString& command) {
   QStringList list = QProcess::splitCommand(command);
+  if (list.isEmpty()) {
+    // splitCommand() on an empty/whitespace command yields no program, so
+    // at(0) below would throw out_of_range and terminate the dock.
+    QMessageBox warning(QMessageBox::Warning, "Error",
+                        QString("Could not run command: ") + command,
+                        QMessageBox::Ok, nullptr, Qt::Tool);
+    warning.exec();
+    return;
+  }
   QProcess process;
   process.setProgram(list.at(0));
   process.setArguments(list.mid(1));
@@ -380,7 +390,7 @@ void Program::createMenu() {
   closeAction_ = menu_.addAction(QIcon::fromTheme("window-close"), QString("&Close Window"), this,
                                  [this] {
                                    parent_->minimize();
-                                   QTimer::singleShot(DockPanel::kExecutionDelayMs, [this]{
+                                   QTimer::singleShot(DockPanel::kExecutionDelayMs, this, [this]{
                                      closeAllWindows();
                                    });
                                  });
@@ -389,7 +399,7 @@ void Program::createMenu() {
   menu_.addAction(QIcon::fromTheme("configure"), QString("Edit &Launchers"), parent_,
                   [this] {
                     parent_->minimize();
-                    QTimer::singleShot(DockPanel::kExecutionDelayMs, [this]{
+                    QTimer::singleShot(DockPanel::kExecutionDelayMs, this, [this]{
                       parent_->showEditLaunchersDialog();
                     });
                   });
@@ -400,7 +410,7 @@ void Program::createMenu() {
                     parent_,
                     [this] {
                       parent_->minimize();
-                      QTimer::singleShot(DockPanel::kExecutionDelayMs, [this]{
+                      QTimer::singleShot(DockPanel::kExecutionDelayMs, this, [this]{
                         parent_->showTaskManagerSettingsDialog();
                       });
                     });

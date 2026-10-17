@@ -155,7 +155,9 @@ void ApplicationMenu::searchApps(const QString& searchText_) {
 
 bool ApplicationMenu::eventFilter(QObject* object, QEvent* event) {
   if (event->type() == QEvent::MouseButtonPress) {
-    auto* activeItem = (dynamic_cast<QMenu*>(object))->activeAction();
+    auto* menu = dynamic_cast<QMenu*>(object);
+    if (!menu) return QObject::eventFilter(object, event);
+    auto* activeItem = menu->activeAction();
     QMouseEvent* mouseEvent = dynamic_cast<QMouseEvent*>(event);
     if (mouseEvent && mouseEvent->button() == Qt::LeftButton && activeItem) {
       startMousePos_ = mouseEvent->pos();
@@ -312,7 +314,7 @@ void ApplicationMenu::createContextMenu() {
                          parent_,
                          [this] {
                            parent_->minimize();
-                           QTimer::singleShot(DockPanel::kExecutionDelayMs, [this]{
+                           QTimer::singleShot(DockPanel::kExecutionDelayMs, this, [this]{
                              parent_->showApplicationMenuSettingsDialog();
                            });
                          });

@@ -62,7 +62,7 @@ VersionChecker::VersionChecker(DockPanel* parent, MultiDockModel* model,
 void VersionChecker::mousePressEvent(QMouseEvent* e) {
   if (e->button() == Qt::LeftButton) {
     parent_->minimize();
-    QTimer::singleShot(DockPanel::kExecutionDelayMs, [this]{
+    QTimer::singleShot(DockPanel::kExecutionDelayMs, this, [this]{
       showVersionInfo();
     });
   } else if (e->button() == Qt::RightButton) {
@@ -75,7 +75,7 @@ void VersionChecker::checkVersion() {
     return;
   }
 
-  QProcess* curlProcess = new QProcess(parent_);
+  QProcess* curlProcess = new QProcess(this);
   connect(curlProcess, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
           [this, curlProcess](int exitCode, QProcess::ExitStatus exitStatus) {
             if (exitCode == 0) {

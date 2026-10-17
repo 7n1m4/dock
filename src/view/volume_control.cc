@@ -168,7 +168,7 @@ void VolumeControl::refreshVolumeInfo() {
   }
 
   // Get volume level
-  volumeProcess_ = new QProcess(parent_);
+  volumeProcess_ = new QProcess(this);
   connect(volumeProcess_, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
           [this](int exitCode, QProcess::ExitStatus exitStatus) {
             if (exitCode == 0) {
@@ -187,7 +187,7 @@ void VolumeControl::refreshVolumeInfo() {
             volumeProcess_ = nullptr;
 
             // Check mute status
-            QProcess* muteProcess = new QProcess(parent_);
+            QProcess* muteProcess = new QProcess(this);
             connect(muteProcess, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
                     [this, muteProcess](int exitCode, QProcess::ExitStatus exitStatus) {
                       if (exitCode == 0) {
@@ -207,7 +207,7 @@ void VolumeControl::refreshVolumeInfo() {
 }
 
 void VolumeControl::setVolume(int volume) {
-  QProcess* process = new QProcess(parent_);
+  QProcess* process = new QProcess(this);
   connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
           [process](int exitCode, QProcess::ExitStatus exitStatus) {
             process->deleteLater();
@@ -223,7 +223,7 @@ void VolumeControl::onVolumeSliderChanged(int value) {
 }
 
 void VolumeControl::toggleMute() {
-  QProcess* process = new QProcess(parent_);
+  QProcess* process = new QProcess(this);
   connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
           [process](int exitCode, QProcess::ExitStatus exitStatus) {
             process->deleteLater();
@@ -236,7 +236,11 @@ void VolumeControl::toggleMute() {
 void VolumeControl::createMenu() {
   // Volume menu
 
-  // Volume slider
+  // Volume slider.
+  // Note: the slider has no QWidget parent -- the enclosing QWidgetAction owns
+  // and destroys it (QWidgetAction::setDefaultWidget), and the action is a child
+  // of menu_, which is a child of this item. VolumeControl is a QObject, not a
+  // QWidget, so it cannot be used as a QWidget parent here.
   volumeSlider_ = new QSlider(Qt::Horizontal);
   volumeSlider_->setRange(0, 100);
   volumeSlider_->setValue(currentVolume_);

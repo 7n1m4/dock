@@ -103,7 +103,7 @@ void KeyboardLayout::setKeyboardLayout(const KeyboardLayoutInfo& layout) {
     return;
   }
 
-  process_ = new QProcess(parent_);
+  process_ = new QProcess(this);
   connect(process_, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
           [this, layout](int exitCode, QProcess::ExitStatus exitStatus) {
             // Somehow IBus returns 1 here even when it succeeded.
@@ -122,7 +122,7 @@ void KeyboardLayout::initKeyboardLayouts() {
     return;
   }
 
-  process_ = new QProcess(parent_);
+  process_ = new QProcess(this);
   connect(process_, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
           [this](int exitCode, QProcess::ExitStatus exitStatus) {
             if (exitCode == 0) {
@@ -158,7 +158,7 @@ void KeyboardLayout::initKeyboardLayouts() {
                 initUserKeyboardLayouts(activeLayout);
               } else {
                 // Gets the currently active keyboard layout.
-                QProcess* process = new QProcess(parent_);
+                QProcess* process = new QProcess(this);
                 connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
                     [this, process](int exitCode, QProcess::ExitStatus exitStatus) {
                       if (exitCode == 0) {
@@ -214,7 +214,7 @@ void KeyboardLayout::createMenu() {
   contextMenu_.addAction(QIcon::fromTheme("configure"), QString("&Edit Keyboard Layouts"), parent_,
                   [this] {
                     parent_->minimize();
-                    QTimer::singleShot(DockPanel::kExecutionDelayMs, [this]{
+                    QTimer::singleShot(DockPanel::kExecutionDelayMs, this, [this]{
                       parent_->showEditKeyboardLayoutsDialog();
                     });
                   });
