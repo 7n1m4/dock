@@ -18,6 +18,8 @@
 
 #include "kde_virtual_desktop_manager.h"
 
+#include <algorithm>
+
 namespace crystaldock {
 
 org_kde_plasma_virtual_desktop_management* KdeVirtualDesktopManager::virtual_desktop_management_;
@@ -80,7 +82,10 @@ std::string KdeVirtualDesktopManager::currentDesktop_;
   auto* virtual_desktop = org_kde_plasma_virtual_desktop_management_get_virtual_desktop(
       virtual_desktop_management, desktop_id);
   info.virtual_desktop = virtual_desktop;
-  desktops_.insert(desktops_.begin() + position, info);
+  // The compositor can send an out-of-range position; clamp it so the insert
+  // stays within the vector.
+  const auto insert_pos = std::min<size_t>(position, desktops_.size());
+  desktops_.insert(desktops_.begin() + insert_pos, info);
   org_kde_plasma_virtual_desktop_add_listener(
       virtual_desktop, &virtual_desktop_listener_, NULL);
   emit self()->numberOfDesktopsChanged(desktops_.size());
@@ -89,10 +94,14 @@ std::string KdeVirtualDesktopManager::currentDesktop_;
 /* static */ void KdeVirtualDesktopManager::desktop_management_desktop_removed(
     void* data, org_kde_plasma_virtual_desktop_management* virtual_desktop_management,
     const char* desktop_id) {
-  desktops_.erase(std::find_if(desktops_.begin(), desktops_.end(),
-                               [desktop_id](auto& e) { return e.id == desktop_id; }));
-  for (unsigned int pos = 0; pos < desktops_.size(); ++pos) {
-    desktops_[pos].number = pos + 1;
+  auto pos = std::find_if(desktops_.begin(), desktops_.end(),
+                          [desktop_id](auto& e) { return e.id == desktop_id; });
+  if (pos == desktops_.end()) {
+    return;
+  }
+  desktops_.erase(pos);
+  for (unsigned int i = 0; i < desktops_.size(); ++i) {
+    desktops_[i].number = i + 1;
   }
   emit self()->numberOfDesktopsChanged(desktops_.size());
 }

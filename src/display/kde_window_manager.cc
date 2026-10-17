@@ -18,6 +18,8 @@
 
 #include "kde_window_manager.h"
 
+#include <QTimer>
+
 namespace crystaldock {
 
 org_kde_plasma_window_management* KdeWindowManager::window_management_;
@@ -155,14 +157,23 @@ bool KdeWindowManager::showingDesktop_;
 
   // So we make our own implementation.
   for (const auto& uuid : stackingOrder_) {
-    auto* window = uuids_[uuid];
-    if (windows_[window]->desktop != WindowSystem::currentDesktop()) {
+    const auto uuid_pos = uuids_.find(uuid);
+    if (uuid_pos == uuids_.end() || uuid_pos->second == nullptr) {
+      continue;
+    }
+    auto* window = uuid_pos->second;
+    const auto window_pos = windows_.find(window);
+    if (window_pos == windows_.end() || !window_pos->second) {
+      continue;
+    }
+    auto& info = window_pos->second;
+    if (info->desktop != WindowSystem::currentDesktop()) {
       continue;
     }
 
     if (show) {
-      windows_[window]->restoreAfterShowDesktop = !windows_[window]->minimized;
-      if (!windows_[window]->minimized) {
+      info->restoreAfterShowDesktop = !info->minimized;
+      if (!info->minimized) {
         org_kde_plasma_window_set_state(
             window,
             ORG_KDE_PLASMA_WINDOW_MANAGEMENT_STATE_MINIMIZED,
@@ -170,7 +181,7 @@ bool KdeWindowManager::showingDesktop_;
       }
       showingDesktop_ = true;
     } else {
-      if (windows_[window]->restoreAfterShowDesktop) {
+      if (info->restoreAfterShowDesktop) {
         org_kde_plasma_window_set_state(
             window,
             ORG_KDE_PLASMA_WINDOW_MANAGEMENT_STATE_ACTIVE,
@@ -320,7 +331,14 @@ bool KdeWindowManager::showingDesktop_;
   }
 
   emit self()->windowRemoved(windows_[window]->window);
+  // Handlers of windowRemoved (e.g. DockPanel::onWindowRemoved -> removeTask)
+  // are direct-connected, so they run inside this emit. Deferring the erase
+  // keeps this WindowInfo alive until the current event dispatch has finished,
+  // so that any code that still holds a pointer obtained from this window
+  // cannot observe a freed object.
+  std::unique_ptr<WindowInfo> removed = std::move(windows_[window]);
   windows_.erase(window);
+  QTimer::singleShot(0, [removed = std::move(removed)]() {});
 }
 
 /* static */ void KdeWindowManager::initial_state(
