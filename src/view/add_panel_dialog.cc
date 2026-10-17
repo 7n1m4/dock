@@ -21,7 +21,6 @@
 
 #include <QGuiApplication>
 
-#include "battery_indicator.h"
 #include <desktop/desktop_env.h>
 #include <display/window_system.h>
 
@@ -75,7 +74,6 @@ void AddPanelDialog::setMode(Mode mode) {
   ui->showTrash->move(120, 220);
   ui->showWifiManager->move(120, 260);
   ui->showVolumeControl->move(120, 300);
-  ui->showBatteryIndicator->move(120, 340);
   ui->showKeyboardLayout->move(120, 380);
   ui->showVersionChecker->move(120, 420);
   ui->showClock->move(120, 460);
@@ -103,8 +101,6 @@ void AddPanelDialog::setMode(Mode mode) {
   ui->showTrash->setChecked(mode == Mode::Welcome);
   ui->showWifiManager->setChecked(mode == Mode::Welcome);
   ui->showVolumeControl->setChecked(mode == Mode::Welcome);
-  ui->showBatteryIndicator->setChecked(
-      mode == Mode::Welcome && !BatteryIndicator::getBatteryDevice().isEmpty());
   ui->showKeyboardLayout->setChecked(mode == Mode::Welcome);
   ui->showVersionChecker->setChecked(mode == Mode::Welcome);
   ui->showClock->setChecked(mode == Mode::Welcome);
@@ -115,7 +111,6 @@ void AddPanelDialog::setMode(Mode mode) {
   ui->showTrash->setVisible(mode != Mode::Clone);
   ui->showWifiManager->setVisible(mode != Mode::Clone);
   ui->showVolumeControl->setVisible(mode != Mode::Clone);
-  ui->showBatteryIndicator->setVisible(mode != Mode::Clone);
   ui->showKeyboardLayout->setVisible(mode != Mode::Clone);
   ui->showVersionChecker->setVisible(mode != Mode::Clone);
   ui->showClock->setVisible(mode != Mode::Clone);
@@ -134,7 +129,6 @@ void AddPanelDialog::setMode(Mode mode) {
     moveY(ui->showTrash, kDeltaY);
     moveY(ui->showWifiManager, kDeltaY);
     moveY(ui->showVolumeControl, kDeltaY);
-    moveY(ui->showBatteryIndicator, kDeltaY);
     moveY(ui->showKeyboardLayout, kDeltaY);
     moveY(ui->showVersionChecker, kDeltaY);
     moveY(ui->showClock, kDeltaY);
@@ -222,7 +216,7 @@ void AddPanelDialog::accept() {
         position, screen, visibility,
         ui->showPager->isChecked(), ui->showTaskManager->isChecked(),
         ui->showTrash->isChecked(), ui->showWifiManager->isChecked(),
-        ui->showVolumeControl->isChecked(), ui->showBatteryIndicator->isChecked(),
+        ui->showVolumeControl->isChecked(), false,
         ui->showKeyboardLayout->isChecked(), ui->showVersionChecker->isChecked(),
         ui->showClock->isChecked());
     model_->maybeAddDockForMultiScreen();

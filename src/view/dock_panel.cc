@@ -47,17 +47,9 @@
 #include <LayerShellQt/Window>
 
 #include "add_panel_dialog.h"
-#include "battery_indicator.h"
-#include "clock.h"
-#include "desktop_selector.h"
-#include "keyboard_layout.h"
 #include "multi_dock_view.h"
 #include "program.h"
 #include "separator.h"
-#include "trash.h"
-#include "version_checker.h"
-#include "volume_control.h"
-#include "wifi_manager.h"
 #include <display/window_system.h>
 #include <utils/draw_utils.h>
 #include <utils/icon_utils.h>
@@ -81,9 +73,7 @@ DockPanel::DockPanel(MultiDockView* parent, MultiDockModel* model, int dockId)
                    QMessageBox::Ok, this, Qt::Tool),
       addPanelDialog_(this, model, dockId),
       appearanceSettingsDialog_(this, model),
-      editKeyboardLayoutsDialog_(this, model),
       editLaunchersDialog_(this, model, dockId),
-      wallpaperSettingsDialog_(this, model),
       taskManagerSettingsDialog_(this, model),
       isMinimized_(true),
       isHidden_(false),
@@ -270,19 +260,10 @@ void DockPanel::about() {
   aboutDialog_.exec();
 }
 
-void DockPanel::showEditKeyboardLayoutsDialog() {
-  editKeyboardLayoutsDialog_.refreshData();
-  editKeyboardLayoutsDialog_.show();
-}
 
 void DockPanel::showEditLaunchersDialog() {
   editLaunchersDialog_.reload();
   editLaunchersDialog_.show();
-}
-
-void DockPanel::showWallpaperSettingsDialog(int desktop) {
-  wallpaperSettingsDialog_.setFor(desktop, screen_);
-  wallpaperSettingsDialog_.show();
 }
 
 void DockPanel::showTaskManagerSettingsDialog() {
@@ -932,19 +913,9 @@ void DockPanel::leaveEvent(QEvent* e) {
   updateLayout();
   activeItem_ = -1;
 }
+void DockPanel::dragEnterEvent(QDragEnterEvent* e) { Q_UNUSED(e); }
 
-void DockPanel::dragEnterEvent(QDragEnterEvent* e) {
-  if (e->mimeData()->hasUrls()) {
-    e->acceptProposedAction();
-    
-    for (const auto& item : items_) {
-      Trash* trash = dynamic_cast<Trash*>(item.get());
-      if (trash) {
-        trash->setAcceptDrops(true);
-      }
-    }
-  }
-}
+void DockPanel::dropEvent(QDropEvent* e) { Q_UNUSED(e); }
 
 void DockPanel::dragMoveEvent(QDragMoveEvent* e) {
   if (e->mimeData()->hasUrls()) {
@@ -952,28 +923,11 @@ void DockPanel::dragMoveEvent(QDragMoveEvent* e) {
   }
 }
 
-void DockPanel::dropEvent(QDropEvent* e) {
-  for (const auto& item : items_) {
-    Trash* trash = dynamic_cast<Trash*>(item.get());
-    if (trash) {
-      trash->setAcceptDrops(false);
-      trash->dropEvent(e);
-      return;
-    }
-  }
-}
 
 void DockPanel::initUi() {
   initPager();
   initLaunchers();
   initTasks();
-  initTrash();
-  initWifiManager();
-  initVolumeControl();
-  initBatteryIndicator();
-  initKeyboardLayout();
-  initVersionChecker();
-  initClock();
   initLayoutVars();
   updateLayout();
   setStrut();
@@ -982,79 +936,10 @@ void DockPanel::initUi() {
   }
 }
 
-Trash* DockPanel::trash() const {
-  for (const auto& item : items_) {
-    if (auto* trash = dynamic_cast<Trash*>(item.get())) {
-      return trash;
-    }
-  }
-  return nullptr;
-}
-
-WifiManager* DockPanel::wifiManager() const {
-  for (const auto& item : items_) {
-    if (auto* wifi = dynamic_cast<WifiManager*>(item.get())) {
-      return wifi;
-    }
-  }
-  return nullptr;
-}
-
-KeyboardLayout* DockPanel::keyboardLayout() const {
-  for (const auto& item : items_) {
-    if (auto* layout = dynamic_cast<KeyboardLayout*>(item.get())) {
-      return layout;
-    }
-  }
-  return nullptr;
-}
-
-VersionChecker* DockPanel::versionChecker() const {
-  for (const auto& item : items_) {
-    if (auto* checker = dynamic_cast<VersionChecker*>(item.get())) {
-      return checker;
-    }
-  }
-  return nullptr;
-}
-
-VolumeControl* DockPanel::volumeControl() const {
-  for (const auto& item : items_) {
-    if (auto* volume = dynamic_cast<VolumeControl*>(item.get())) {
-      return volume;
-    }
-  }
-  return nullptr;
-}
-
 void DockPanel::setFeatureVisible(int feature, bool visible) {
   switch (feature) {
-    case 0:  // Pager
-      showPager_ = visible;
-      break;
-    case 1:  // Task Manager
+    case 0:  // Task Manager
       model_->setShowTaskManager(dockId_, visible);
-      break;
-    case 2:  // Trash
-      showTrash_ = visible;
-      break;
-    case 3:  // Wi-Fi Manager
-      showWifiManager_ = visible;
-      break;
-    case 4:  // Volume Control
-      showVolumeControl_ = visible;
-      break;
-    case 5:  // Battery Indicator
-      showBatteryIndicator_ = visible;
-      break;
-    case 6:  // Keyboard Layout
-      showKeyboardLayout_ = visible;
-      break;
-    case 7:  // Version Checker
-      showVersionChecker_ = visible;
-      break;
-    case 8:  // Clock
-      showClock_ = visible;
       break;
     default:
       return;
@@ -1086,19 +971,6 @@ void DockPanel::loadDockConfig() {
 
   showPager_ = model_->showPager(dockId_) && WindowSystem::hasVirtualDesktopManager();
 
-  showTrash_ = model_->showTrash(dockId_);
-
-  showWifiManager_ = model_->showWifiManager(dockId_);
-
-  showVolumeControl_ = model_->showVolumeControl(dockId_);
-
-  showBatteryIndicator_ = model_->showBatteryIndicator(dockId_);
-
-  showKeyboardLayout_ = model_->showKeyboardLayout(dockId_);
-
-  showVersionChecker_ = model_->showVersionChecker(dockId_);
-
-  showClock_ = model_->showClock(dockId_);
 }
 
 void DockPanel::saveDockConfig() {
@@ -1107,13 +979,6 @@ void DockPanel::saveDockConfig() {
   model_->setVisibility(dockId_, visibility_);
   model_->setShowPager(dockId_, showPager_);
   model_->setShowTaskManager(dockId_, model_->showTaskManager(dockId_));
-  model_->setShowTrash(dockId_, showTrash_);
-  model_->setShowWifiManager(dockId_, showWifiManager_);
-  model_->setShowVolumeControl(dockId_, showVolumeControl_);
-  model_->setShowBatteryIndicator(dockId_, showBatteryIndicator_);
-  model_->setShowKeyboardLayout(dockId_, showKeyboardLayout_);
-  model_->setShowVersionChecker(dockId_, showVersionChecker_);
-  model_->setShowClock(dockId_, showClock_);
   model_->saveDockConfig(dockId_);
 }
 
@@ -1144,12 +1009,6 @@ void DockPanel::initLaunchers() {
 }
 
 void DockPanel::initPager() {
-  if (showPager_) {
-    for (const auto& desktop : WindowSystem::desktops()) {
-      items_.push_back(std::make_unique<DesktopSelector>(
-          this, model_, orientation_, minSize_, maxSize_, desktop, screen_));
-    }
-  }
 }
 
 void DockPanel::initTasks() {
@@ -1184,13 +1043,6 @@ void DockPanel::reloadTasks() {
   }
   initLaunchers();
   initTasks();
-  initTrash();
-  initWifiManager();
-  initVolumeControl();
-  initBatteryIndicator();
-  initKeyboardLayout();
-  initVersionChecker();
-  initClock();
   activeItem_ = -1;
   resizeTaskManager();
   if (WindowSystem::hasAutoHideManager() && intellihideShouldHide()) {
@@ -1345,54 +1197,6 @@ bool DockPanel::hasTask(void* window) {
   return false;
 }
 
-void DockPanel::initTrash() {
-  if (showTrash_) {
-    items_.push_back(std::make_unique<Trash>(
-        this, model_, orientation_, minSize_, maxSize_));
-  }
-}
-
-void DockPanel::initWifiManager() {
-  if (showWifiManager_) {
-    items_.push_back(std::make_unique<WifiManager>(
-        this, model_, orientation_, minSize_, maxSize_));
-  }
-}
-
-void DockPanel::initVolumeControl() {
-  if (showVolumeControl_) {
-    items_.push_back(std::make_unique<VolumeControl>(
-        this, model_, orientation_, minSize_, maxSize_));
-  }
-}
-
-void DockPanel::initBatteryIndicator() {
-  if (showBatteryIndicator_) {
-    items_.push_back(std::make_unique<BatteryIndicator>(
-        this, model_, orientation_, minSize_, maxSize_));
-  }
-}
-
-void DockPanel::initKeyboardLayout() {
-  if (showKeyboardLayout_) {
-    items_.push_back(std::make_unique<KeyboardLayout>(
-        this, model_, orientation_, minSize_, maxSize_));
-  }
-}
-
-void DockPanel::initVersionChecker() {
-  if (showVersionChecker_) {
-    items_.push_back(std::make_unique<VersionChecker>(
-        this, model_, orientation_, minSize_, maxSize_));
-  }
-}
-
-void DockPanel::initClock() {
-  if (showClock_) {
-    items_.push_back(std::make_unique<Clock>(
-        this, model_, orientation_, minSize_, maxSize_));
-  }
-}
 
 void DockPanel::initLayoutVars() {
   const auto spacingMultiplier = isMetal2D() ? kSpacingMultiplierMetal2D : kSpacingMultiplier;

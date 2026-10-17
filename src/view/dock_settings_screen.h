@@ -35,11 +35,8 @@
 
 #include "appearance_settings_dialog.h"
 #include "dock_panel.h"
-#include "edit_keyboard_layouts_dialog.h"
 #include "edit_launchers_dialog.h"
 #include "task_manager_settings_dialog.h"
-#include "trash.h"
-#include "wallpaper_settings_dialog.h"
 #include <model/multi_dock_model.h>
 
 class MultiDockView;
@@ -120,8 +117,6 @@ class DockSettingsScreen : public QDialog {
   AppearanceSettingsDialog* embeddedAppearanceDialog_ = nullptr;
   EditLaunchersDialog* embeddedLaunchersDialog_ = nullptr;
   TaskManagerSettingsDialog* embeddedTaskManagerDialog_ = nullptr;
-  EditKeyboardLayoutsDialog* embeddedKeyboardLayoutsDialog_ = nullptr;
-  WallpaperSettingsDialog* embeddedWallpaperDialog_ = nullptr;
 
   // Per-panel controls on the Panel page.
   QComboBox* positionSelector_;
@@ -143,13 +138,9 @@ class DockSettingsScreen : public QDialog {
   QCheckBox* clock24HourClock_;
 
   // Controls that report on the target panel's live items.
-  QPushButton* emptyTrashButton_;
 
   // The target panel's Trash, whose trashStateChanged drives the button.
-  Trash* watchedTrash_ = nullptr;
 
-  // Holds the (re-created) keyboard-layouts dialog for the selected panel.
-  QGroupBox* keyboardLayoutGroup_;
 };
 
 }  // namespace crystaldock

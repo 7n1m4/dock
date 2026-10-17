@@ -41,19 +41,12 @@
 #include "add_panel_dialog.h"
 #include "appearance_settings_dialog.h"
 #include "dock_item.h"
-#include "edit_keyboard_layouts_dialog.h"
 #include "edit_launchers_dialog.h"
 #include "task_manager_settings_dialog.h"
-#include "wallpaper_settings_dialog.h"
 
 namespace crystaldock {
 
 class MultiDockView;
-class Trash;
-class WifiManager;
-class KeyboardLayout;
-class VersionChecker;
-class VolumeControl;
 
 // A dock panel. The user can have multiple dock panels at the same time.
 class DockPanel : public QWidget {
@@ -121,13 +114,6 @@ class DockPanel : public QWidget {
   // Sets whether the dock is showing some popup menu.
   void setShowingPopup(bool showingPopup);
 
-  // Finds the Trash / Wi-Fi Manager item on this panel, if the corresponding
-  // feature is enabled. Returns nullptr otherwise.
-  Trash* trash() const;
-  WifiManager* wifiManager() const;
-  KeyboardLayout* keyboardLayout() const;
-  VersionChecker* versionChecker() const;
-  VolumeControl* volumeControl() const;
 
  public slots:
   // Reloads the items and updates the dock.
@@ -203,47 +189,6 @@ class DockPanel : public QWidget {
     saveDockConfig();
   }
 
-  void toggleTrash() {
-    showTrash_ = !showTrash_;
-    reload();
-    saveDockConfig();
-  }
-
-  void toggleWifiManager() {
-    showWifiManager_ = !showWifiManager_;
-    reload();
-    saveDockConfig();
-  }
-
-  void toggleVolumeControl() {
-    showVolumeControl_ = !showVolumeControl_;
-    reload();
-    saveDockConfig();
-  }
-
-  void toggleBatteryIndicator() {
-    showBatteryIndicator_ = !showBatteryIndicator_;
-    reload();
-    saveDockConfig();
-  }
-
-  void toggleKeyboardLayout() {
-    showKeyboardLayout_ = !showKeyboardLayout_;
-    reload();
-    saveDockConfig();
-  }
-
-  void toggleVersionChecker() {
-    showVersionChecker_ = !showVersionChecker_;
-    reload();
-    saveDockConfig();
-  }
-
-  void toggleClock() {
-    showClock_ = !showClock_;
-    reload();
-    saveDockConfig();
-  }
 
   // Sets the dock on a specific screen given screen index.
   // Thus 0 is screen 1 and so on.
@@ -262,9 +207,7 @@ class DockPanel : public QWidget {
   // These are for global appearance settings.
   // Dock-specific settings are activated from menu items on the context menu
   // directly.
-  void showEditKeyboardLayoutsDialog();
   void showEditLaunchersDialog();
-  void showWallpaperSettingsDialog(int desktop);
   void showTaskManagerSettingsDialog();
 
   void addDock();
@@ -345,13 +288,6 @@ class DockPanel : public QWidget {
   bool shouldConsiderTaskForIntellihide(const WindowInfo* task);
   bool hasTask(void* window);
 
-  void initTrash();
-  void initWifiManager();
-  void initVolumeControl();
-  void initBatteryIndicator();
-  void initKeyboardLayout();
-  void initVersionChecker();
-  void initClock();
 
   void initLayoutVars();
 
@@ -414,13 +350,6 @@ class DockPanel : public QWidget {
   int screen_;  // the screen (as screen index) that the dock is on.
   PanelVisibility visibility_;
   bool showPager_;
-  bool showTrash_;
-  bool showWifiManager_;
-  bool showVolumeControl_;
-  bool showBatteryIndicator_;
-  bool showKeyboardLayout_;
-  bool showVersionChecker_;
-  bool showClock_;
   int minSize_;
   int maxSize_;
   float spacingFactor_;  // item spacing as ratio of minSize, in (0, 1) range.
@@ -463,9 +392,7 @@ class DockPanel : public QWidget {
   QMessageBox aboutDialog_;
   AddPanelDialog addPanelDialog_;
   AppearanceSettingsDialog appearanceSettingsDialog_;
-  EditKeyboardLayoutsDialog editKeyboardLayoutsDialog_;
   EditLaunchersDialog editLaunchersDialog_;
-  WallpaperSettingsDialog wallpaperSettingsDialog_;
   TaskManagerSettingsDialog taskManagerSettingsDialog_;
 
   bool isMinimized_;
@@ -490,7 +417,6 @@ class DockPanel : public QWidget {
   int mouseX_;
   int mouseY_;
 
-  friend class KeyboardLayout;  // for accessing EditKeyboardLayoutDialog.
   friend class Program;  // for leaveEvent.
 };
 

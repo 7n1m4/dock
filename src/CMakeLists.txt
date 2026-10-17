@@ -24,14 +24,6 @@ find_package(LayerShellQt 6.0 REQUIRED)
 
 set(SRCS
     desktop/desktop_env.cc
-    desktop/budgie_desktop_env.cc
-    desktop/hyprland_desktop_env.cc
-    desktop/kde_desktop_env.cc
-    desktop/labwc_desktop_env.cc
-    desktop/lxqt_desktop_env.cc
-    desktop/niri_desktop_env.cc
-    desktop/sway_desktop_env.cc
-    desktop/wayfire_desktop_env.cc
     display/window_system.cc
     display/kde_auto_hide_manager.cc
     display/kde_virtual_desktop_manager.cc
@@ -47,40 +39,18 @@ set(SRCS
     model/multi_dock_model.cc
     view/add_panel_dialog.cc
     view/appearance_settings_dialog.cc
-    view/battery_indicator.cc
-    view/calendar.cc
-    view/clock.cc
     view/color_button.cc
-    view/desktop_selector.cc
-    view/dock_item.cc
     view/dock_panel.cc
+    view/task_manager_settings_dialog.cc
     view/dock_settings_screen.cc
-    view/edit_keyboard_layouts_dialog.cc
     view/edit_launchers_dialog.cc
     view/icon_based_dock_item.cc
-    view/icon_button.cc
     view/iconless_dock_item.cc
-    view/keyboard_layout.cc
     view/multi_dock_view.cc
     view/program.cc
     view/separator.cc
-    view/trash.cc
-    view/version_checker.cc
-    view/volume_control.cc
-    view/task_manager_settings_dialog.cc
-    view/wallpaper_settings_dialog.cc
-    view/wifi_connection_dialog.cc
-    view/wifi_manager.cc
     utils/desktop_file.cc
     desktop/desktop_env.h
-    desktop/budgie_desktop_env.h
-    desktop/hyprland_desktop_env.h
-    desktop/kde_desktop_env.h
-    desktop/labwc_desktop_env.h
-    desktop/lxqt_desktop_env.h
-    desktop/niri_desktop_env.h
-    desktop/sway_desktop_env.h
-    desktop/wayfire_desktop_env.h
     display/window_system.h
     display/kde_auto_hide_manager.h
     display/kde_virtual_desktop_manager.h
@@ -97,30 +67,18 @@ set(SRCS
     model/multi_dock_model.h
     view/add_panel_dialog.h
     view/appearance_settings_dialog.h
-    view/battery_indicator.h
-    view/calendar.h
-    view/clock.h
     view/color_button.h
-    view/desktop_selector.h
     view/dock_item.h
     view/dock_panel.h
     view/dock_settings_screen.h
-    view/edit_keyboard_layouts_dialog.h
     view/edit_launchers_dialog.h
     view/icon_based_dock_item.h
     view/icon_button.h
     view/iconless_dock_item.h
-    view/keyboard_layout.h
     view/multi_dock_view.h
     view/program.h
     view/separator.h
-    view/trash.h
-    view/version_checker.h
-    view/volume_control.h
     view/task_manager_settings_dialog.h
-    view/wallpaper_settings_dialog.h
-    view/wifi_connection_dialog.h
-    view/wifi_manager.h
     utils/command_utils.h
     utils/desktop_file.h
     utils/draw_utils.h
@@ -131,11 +89,9 @@ set(SRCS
     view/add_panel_dialog.ui
     view/appearance_settings_dialog.ui
     view/dock_settings_screen.ui
-    view/edit_keyboard_layouts_dialog.ui
     view/edit_launchers_dialog.ui
     view/task_manager_settings_dialog.ui
-    view/wallpaper_settings_dialog.ui
-    view/wifi_connection_dialog.ui)
+)
 add_library(crystal-dock_lib STATIC ${SRCS})
 
 set(LIBS Qt6::DBus Qt6::GuiPrivate Qt6::Widgets Wayland::Client LayerShellQt::Interface)
@@ -163,10 +119,3 @@ configure_file(
 add_custom_target(uninstall COMMAND ${CMAKE_COMMAND}
     -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
 
-# Test
-
-enable_testing()
-
-add_executable(application_menu_config_test model/application_menu_config_test.cc)
-target_link_libraries(application_menu_config_test Qt6::Test crystal-dock_lib ${LIBS})
-add_test(application_menu_config_test application_menu_config_test)

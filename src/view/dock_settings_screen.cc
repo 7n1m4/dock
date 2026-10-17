@@ -31,12 +31,7 @@
 
 #include <display/window_system.h>
 
-#include "keyboard_layout.h"
 #include "multi_dock_view.h"
-#include "trash.h"
-#include "version_checker.h"
-#include "volume_control.h"
-#include "wifi_manager.h"
 
 namespace crystaldock {
 
@@ -45,15 +40,7 @@ namespace {
 // The per-dock component toggles, in the same order as the model keys they
 // write and as DockPanel::setFeatureVisible's switch cases.
 const std::vector<std::pair<const char*, const char*>> kFeatureRows = {
-    {"Pager", "showPager"},
     {"Task Manager", "showTaskManager"},
-    {"Trash", "showTrash"},
-    {"Wi-Fi Manager", "showWifiManager"},
-    {"Volume Control", "showVolumeControl"},
-    {"Battery Indicator", "showBatteryIndicator"},
-    {"Keyboard Layout", "showKeyboardLayout"},
-    {"Version Checker", "showVersionChecker"},
-    {"Clock", "showClock"},
 };
 
 }  // namespace
@@ -167,12 +154,7 @@ void DockSettingsScreen::loadData() {
       static_cast<int>(model_->visibility(dockId_)));
 
   const std::vector<bool (MultiDockModel::*)(int) const> featureGetters = {
-      &MultiDockModel::showPager,
-      &MultiDockModel::showTaskManager, &MultiDockModel::showTrash,
-      &MultiDockModel::showWifiManager, &MultiDockModel::showVolumeControl,
-      &MultiDockModel::showBatteryIndicator,
-      &MultiDockModel::showKeyboardLayout, &MultiDockModel::showVersionChecker,
-      &MultiDockModel::showClock,
+      &MultiDockModel::showTaskManager,
   };
   for (size_t i = 0; i < featureToggles_.size(); ++i) {
     featureToggles_[i]->setChecked((model_->*featureGetters[i])(dockId_));
@@ -190,64 +172,10 @@ void DockSettingsScreen::loadData() {
   if (embeddedAppearanceDialog_) embeddedAppearanceDialog_->reload();
   if (embeddedLaunchersDialog_) embeddedLaunchersDialog_->reload();
   if (embeddedTaskManagerDialog_) embeddedTaskManagerDialog_->reload();
-  embedKeyboardLayoutsDialog();
-  if (embeddedWallpaperDialog_) embeddedWallpaperDialog_->populateDesktopList();
 }
 
-void DockSettingsScreen::embedKeyboardLayoutsDialog() {
-  // The screen owns its own dialog, seeded with the layouts discovered by the
-  // target panel's KeyboardLayout item. The panel's own dialog cannot be
-  // re-parented here: DockPanel holds it by value, so parenting it to this
-  // window would make the window's destruction delete a live DockPanel
-  // sub-object.
-  auto* layout = qobject_cast<QVBoxLayout*>(keyboardLayoutGroup_->layout());
-  if (!layout) {
-    return;
-  }
-  while (QLayoutItem* item = layout->takeAt(0)) {
-    delete item;
-  }
-  if (!embeddedKeyboardLayoutsDialog_) {
-    embeddedKeyboardLayoutsDialog_ =
-        new EditKeyboardLayoutsDialog(this, model_);
-  }
-
-  KeyboardLayout* item = targetPanel_ ? targetPanel_->keyboardLayout()
-                                      : nullptr;
-  // Seed it only from a panel that has finished discovering its layouts, so an
-  // unfinished IBus scan does not wipe what we already show.
-  if (item && !item->availableEngines().empty()) {
-    embeddedKeyboardLayoutsDialog_->setKeyboardLayouts(item->availableLayouts(),
-                                                       item->availableEngines());
-    embeddedKeyboardLayoutsDialog_->configureForEmbedding();
-    layout->addWidget(embeddedKeyboardLayoutsDialog_);
-    embeddedKeyboardLayoutsDialog_->refreshData();
-    return;
-  }
-
-  if (embeddedKeyboardLayoutsDialog_) {
-    layout->addWidget(embeddedKeyboardLayoutsDialog_);
-  } else {
-    // The Keyboard Layout feature is off (or IBus has not reported yet).
-    layout->addWidget(new QLabel(
-        tr("The Keyboard Layout component is not enabled on this panel.")));
-  }
-}
 
 void DockSettingsScreen::updateTrashButton() {
-  if (!emptyTrashButton_) return;
-  if (watchedTrash_) {
-    disconnect(watchedTrash_, &Trash::trashStateChanged, this, nullptr);
-    watchedTrash_ = nullptr;
-  }
-  Trash* trash = targetPanel_ ? targetPanel_->trash() : nullptr;
-  if (trash) {
-    watchedTrash_ = trash;
-    connect(trash, &Trash::trashStateChanged, this, [this](bool empty) {
-      emptyTrashButton_->setEnabled(!empty);
-    });
-  }
-  emptyTrashButton_->setEnabled(trash && !trash->isTrashEmpty());
 }
 
 void DockSettingsScreen::resetData() {
@@ -274,7 +202,6 @@ void DockSettingsScreen::saveData() {
     // The panel is gone (e.g. removed through this window); only the model
     // side of the toggles can still be written.
     const std::vector<void (MultiDockModel::*)(int, bool)> modelSetters = {
-        &MultiDockModel::setShowPager,
         &MultiDockModel::setShowTaskManager, &MultiDockModel::setShowTrash,
         &MultiDockModel::setShowWifiManager,
         &MultiDockModel::setShowVolumeControl,
@@ -385,35 +312,6 @@ void DockSettingsScreen::createLaunchersPage() {
   });
   layout->addWidget(actionsGroup);
 
-  auto* trashGroup = new QGroupBox(tr("Trash"));
-  auto* trashLayout = new QVBoxLayout(trashGroup);
-  emptyTrashButton_ = new QPushButton(tr("Empty Trash"));
-  trashLayout->addWidget(emptyTrashButton_);
-  connect(emptyTrashButton_, &QPushButton::clicked, this, [this]() {
-    if (targetPanel_) {
-      if (Trash* trash = targetPanel_->trash()) {
-        trash->emptyTrash();
-      }
-    }
-    updateTrashButton();
-  });
-  layout->addWidget(trashGroup);
-
-  auto* wallpaperGroup = new QGroupBox(tr("Wallpaper"));
-  auto* wallpaperLayout = new QVBoxLayout(wallpaperGroup);
-  embeddedWallpaperDialog_ = new WallpaperSettingsDialog(this, model_);
-  embeddedWallpaperDialog_->configureForEmbedding();
-  wallpaperLayout->addWidget(embeddedWallpaperDialog_);
-  auto* setWallpaperButton = new QPushButton(tr("Set Wallpaper…"));
-  wallpaperLayout->addWidget(setWallpaperButton);
-  connect(setWallpaperButton, &QPushButton::clicked, this, [this]() {
-    if (targetPanel_) {
-      targetPanel_->showWallpaperSettingsDialog(
-          embeddedWallpaperDialog_ ? embeddedWallpaperDialog_->currentDesktop()
-                                   : 0);
-    }
-  });
-  layout->addWidget(wallpaperGroup);
 
   layout->addStretch();
 }
@@ -445,60 +343,7 @@ void DockSettingsScreen::createAppearancePage() {
 void DockSettingsScreen::createComponentsPage() {
   auto* layout = ui->componentsPageLayout;
 
-  auto* volumeGroup = new QGroupBox(tr("Volume Control"));
-  auto* volumeLayout = new QVBoxLayout(volumeGroup);
-  volumeLayout->addWidget(new QLabel(tr("Volume scroll step:")));
-  volumeScrollStepSelector_ = new QComboBox();
-  volumeScrollStepSelector_->addItem(tr("1% (Fine)"), 1);
-  volumeScrollStepSelector_->addItem(tr("2% (Default)"), 2);
-  volumeScrollStepSelector_->addItem(tr("5% (Coarse)"), 5);
-  volumeScrollStepSelector_->addItem(tr("10% (Very Coarse)"), 10);
-  volumeLayout->addWidget(volumeScrollStepSelector_);
-  connect(volumeScrollStepSelector_,
-          QOverload<int>::of(&QComboBox::currentIndexChanged), this,
-          [this](int index) {
-            const int step = volumeScrollStepSelector_->itemData(index).toInt();
-            model_->setVolumeScrollStep(step);
-            model_->saveAppearanceConfig(true);
-            if (targetPanel_) {
-              if (VolumeControl* volume = targetPanel_->volumeControl()) {
-                volume->setScrollStep(step);
-              }
-            }
-          });
-  layout->addWidget(volumeGroup);
 
-  auto* versionGroup = new QGroupBox(tr("Version Checker"));
-  auto* versionLayout = new QVBoxLayout(versionGroup);
-  versionLayout->addWidget(new QLabel(tr("Check frequency:")));
-  versionCheckFrequencySelector_ = new QComboBox();
-  // Only the two frequencies the dock has ever offered. The value lives on the
-  // item (in-memory), so there is no model key to persist it.
-  versionCheckFrequencySelector_->addItems({tr("Hourly"), tr("Daily")});
-  connect(versionCheckFrequencySelector_,
-          QOverload<int>::of(&QComboBox::currentIndexChanged), this,
-          [this](int index) {
-            if (targetPanel_) {
-              if (VersionChecker* checker = targetPanel_->versionChecker()) {
-                checker->setCheckingFrequency(index);
-              }
-            }
-          });
-  versionLayout->addWidget(versionCheckFrequencySelector_);
-  layout->addWidget(versionGroup);
-
-  auto* wifiGroup = new QGroupBox(tr("Wi-Fi Manager"));
-  auto* wifiLayout = new QVBoxLayout(wifiGroup);
-  auto* rescanWifiButton = new QPushButton(tr("Rescan Wi-Fi networks"));
-  wifiLayout->addWidget(rescanWifiButton);
-  connect(rescanWifiButton, &QPushButton::clicked, this, [this]() {
-    if (targetPanel_) {
-      if (WifiManager* wifi = targetPanel_->wifiManager()) {
-        wifi->rescan();
-      }
-    }
-  });
-  layout->addWidget(wifiGroup);
 
   auto* clockGroup = new QGroupBox(tr("Clock"));
   auto* clockLayout = new QVBoxLayout(clockGroup);
@@ -513,12 +358,7 @@ void DockSettingsScreen::createComponentsPage() {
   clockLayout->addWidget(clock24HourClock_);
   layout->addWidget(clockGroup);
 
-  // The keyboard-layouts dialog is embedded in loadData(), because it must be
-  // the target panel's live one (see there).
-  keyboardLayoutGroup_ = new QGroupBox(tr("Keyboard Layout"));
-  auto* keyboardLayout = new QVBoxLayout(keyboardLayoutGroup_);
-  keyboardLayout->addWidget(new QLabel(tr("Loading available layouts…")));
-  layout->addWidget(keyboardLayoutGroup_);
+
 
   auto* taskManagerGroup = new QGroupBox(tr("Task Manager"));
   auto* taskManagerLayout = new QVBoxLayout(taskManagerGroup);
