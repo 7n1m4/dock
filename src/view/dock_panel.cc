@@ -47,7 +47,6 @@
 #include <LayerShellQt/Window>
 
 #include "add_panel_dialog.h"
-#include "application_menu.h"
 #include "battery_indicator.h"
 #include "clock.h"
 #include "desktop_selector.h"
@@ -84,7 +83,6 @@ DockPanel::DockPanel(MultiDockView* parent, MultiDockModel* model, int dockId)
       appearanceSettingsDialog_(this, model),
       editKeyboardLayoutsDialog_(this, model),
       editLaunchersDialog_(this, model, dockId),
-      applicationMenuSettingsDialog_(this, model),
       wallpaperSettingsDialog_(this, model),
       taskManagerSettingsDialog_(this, model),
       isMinimized_(true),
@@ -966,7 +964,6 @@ void DockPanel::dropEvent(QDropEvent* e) {
 }
 
 void DockPanel::initUi() {
-  initApplicationMenu();
   initPager();
   initLaunchers();
   initTasks();
@@ -1032,34 +1029,31 @@ VolumeControl* DockPanel::volumeControl() const {
 
 void DockPanel::setFeatureVisible(int feature, bool visible) {
   switch (feature) {
-    case 0:  // Application Menu
-      showApplicationMenu_ = visible;
-      break;
-    case 1:  // Pager
+    case 0:  // Pager
       showPager_ = visible;
       break;
-    case 2:  // Task Manager
+    case 1:  // Task Manager
       model_->setShowTaskManager(dockId_, visible);
       break;
-    case 3:  // Trash
+    case 2:  // Trash
       showTrash_ = visible;
       break;
-    case 4:  // Wi-Fi Manager
+    case 3:  // Wi-Fi Manager
       showWifiManager_ = visible;
       break;
-    case 5:  // Volume Control
+    case 4:  // Volume Control
       showVolumeControl_ = visible;
       break;
-    case 6:  // Battery Indicator
+    case 5:  // Battery Indicator
       showBatteryIndicator_ = visible;
       break;
-    case 7:  // Keyboard Layout
+    case 6:  // Keyboard Layout
       showKeyboardLayout_ = visible;
       break;
-    case 8:  // Version Checker
+    case 7:  // Version Checker
       showVersionChecker_ = visible;
       break;
-    case 9:  // Clock
+    case 8:  // Clock
       showClock_ = visible;
       break;
     default:
@@ -1089,7 +1083,6 @@ void DockPanel::loadDockConfig() {
   setScreen(model_->screen(dockId_));
   setVisibility(model_->visibility(dockId_));
 
-  showApplicationMenu_ = model_->showApplicationMenu(dockId_);
 
   showPager_ = model_->showPager(dockId_) && WindowSystem::hasVirtualDesktopManager();
 
@@ -1112,7 +1105,6 @@ void DockPanel::saveDockConfig() {
   model_->setPanelPosition(dockId_, position_);
   model_->setScreen(dockId_, screen_);
   model_->setVisibility(dockId_, visibility_);
-  model_->setShowApplicationMenu(dockId_, showApplicationMenu_);
   model_->setShowPager(dockId_, showPager_);
   model_->setShowTaskManager(dockId_, model_->showTaskManager(dockId_));
   model_->setShowTrash(dockId_, showTrash_);
@@ -1133,13 +1125,6 @@ void DockPanel::loadAppearanceConfig() {
   borderColor_ = model_->borderColor();
   tooltipFontSize_ = model_->tooltipFontSize();
   setPanelStyle(model_->panelStyle());
-}
-
-void DockPanel::initApplicationMenu() {
-  if (showApplicationMenu_) {
-    items_.push_back(std::make_unique<ApplicationMenu>(
-        this, model_, orientation_, minSize_, maxSize_));
-  }
 }
 
 void DockPanel::initLaunchers() {
@@ -1184,7 +1169,7 @@ void DockPanel::reloadTasks() {
     return;
   }
 
-  const int itemsToKeep = applicationMenuItemCount() + pagerItemCount();
+  const int itemsToKeep = pagerItemCount();
   // Truncate the tasks part, deferring destruction like refresh() does.
   // resize() would destroy the items right here, which is unsafe because an
   // item may be running its nested menu loop.
@@ -1726,8 +1711,7 @@ void DockPanel::resizeTaskManager() {
     }
   }
 
-  const int itemsToKeep = (showApplicationMenu_ ? 1 : 0) +
-      (showPager_ ? WindowSystem::numberOfDesktops() : 0);
+  const int itemsToKeep = (showPager_ ? WindowSystem::numberOfDesktops() : 0);
   int left = 0;
   int top = 0;
   for (int i = 0; i < itemCount(); ++i) {

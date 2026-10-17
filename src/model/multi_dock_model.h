@@ -78,8 +78,7 @@ constexpr float kSmallClockFontScaleFactor = 0.6;
 
 constexpr PanelVisibility kDefaultVisibility = PanelVisibility::AlwaysVisible;
 constexpr bool kDefaultAutoHide = false;
-constexpr bool kDefaultShowApplicationMenu = true;
-constexpr bool kDefaultShowPager = false;
+constexpr bool kDefaultShowPager = true;
 constexpr bool kDefaultShowTaskManager = true;
 constexpr bool kDefaultShowTrash = true;
 constexpr bool kDefaultShowWifiManager = true;
@@ -91,10 +90,6 @@ constexpr bool kDefaultShowClock = true;
 constexpr int kDefaultVolumeScrollStep = 2;
 constexpr PanelStyle kDefaultPanelStyle = PanelStyle::Glass3D_Floating;
 
-constexpr char kDefaultApplicationMenuName[] = "Applications";
-constexpr int kDefaultApplicationMenuIconSize = 40;
-constexpr int kDefaultApplicationMenuFontSize = 14;
-constexpr float kDefaultApplicationMenuBackgroundAlpha = 0.8;
 constexpr bool kDefaultShowDesktopNumber = true;
 constexpr bool kDefaultCurrentDesktopTasksOnly = false;
 constexpr bool kDefaultCurrentScreenTasksOnly = true;
@@ -139,7 +134,7 @@ class MultiDockModel : public QObject {
 
   // Adds a new dock in the specified position and screen.
   void addDock(PanelPosition position, int screen, PanelVisibility visibility,
-               bool showApplicationMenu, bool showPager,
+               bool showPager,
                bool showTaskManager, bool showTrash,
                bool showWifiManager, bool showVolumeControl,
                bool showBatteryIndicator, bool showKeyboardLayout,
@@ -388,47 +383,6 @@ class MultiDockModel : public QObject {
     return value;
   }
 
-  QString applicationMenuName() const {
-    return appearanceProperty(kApplicationMenuCategory, kLabel,
-                              QString(kDefaultApplicationMenuName));
-  }
-
-  void setApplicationMenuName(const QString& value) {
-    setAppearanceProperty(kApplicationMenuCategory, kLabel, value);
-  }
-
-  QString applicationMenuIcon() const {
-    return desktopEnv_->getApplicationMenuIcon();
-  }
-
-  int applicationMenuIconSize() const {
-    return appearanceProperty(kApplicationMenuCategory, kIconSize,
-                              kDefaultApplicationMenuIconSize);
-  }
-
-  void setApplicationMenuIconSize(int value) {
-    setAppearanceProperty(kApplicationMenuCategory, kIconSize, value);
-  }
-
-  int applicationMenuFontSize() const {
-    return appearanceProperty(kApplicationMenuCategory, kFontSize,
-                              kDefaultApplicationMenuFontSize);
-  }
-
-  void setApplicationMenuFontSize(int value) {
-    setAppearanceProperty(kApplicationMenuCategory, kFontSize, value);
-  }
-
-  float applicationMenuBackgroundAlpha() const {
-    return appearanceProperty(kApplicationMenuCategory, kBackgroundAlpha,
-                              QString::number(kDefaultApplicationMenuBackgroundAlpha)).toFloat();
-  }
-
-  // Converts float to string to make the entry in the config file human-readable.
-  void setApplicationMenuBackgroundAlpha(float value) {
-    setAppearanceProperty(kApplicationMenuCategory, kBackgroundAlpha, QString::number(value));
-  }
-
   QString wallpaper(std::string_view desktopId, int screen) const {
     return appearanceProperty(kPagerCategory,
                               ConfigHelper::wallpaperConfigKey(desktopId, screen),
@@ -561,16 +515,6 @@ class MultiDockModel : public QObject {
   void setAutoHide(int dockId, bool value) {
     setDockProperty(dockId, kGeneralCategory, kAutoHide, value);
   }
-
-  bool showApplicationMenu(int dockId) const {
-    return dockProperty(dockId, kGeneralCategory, kShowApplicationMenu,
-                        kDefaultShowApplicationMenu);
-  }
-
-  void setShowApplicationMenu(int dockId, bool value) {
-    setDockProperty(dockId, kGeneralCategory, kShowApplicationMenu, value);
-  }
-
   bool showPager(int dockId) const {
     return dockProperty(dockId, kGeneralCategory, kShowPager, kDefaultShowPager);
   }
@@ -757,7 +701,6 @@ class MultiDockModel : public QObject {
   static constexpr char kVisibility[] = "visibility";
   static constexpr char kPosition[] = "position";
   static constexpr char kScreen[] = "screen";
-  static constexpr char kShowApplicationMenu[] = "showApplicationMenu";
   static constexpr char kShowPager[] = "showPager";
   static constexpr char kShowTaskManager[] = "showTaskManager";
   static constexpr char kShowTrash[] = "showTrash";
@@ -795,12 +738,6 @@ class MultiDockModel : public QObject {
 
   static constexpr char kFirstRunMultiScreen[] = "firstRunMultiScreen";
   static constexpr char kFirstRunWindowCountIndicator[] = "firstRunWindowCountIndicator";
-
-  static constexpr char kApplicationMenuCategory[] = "Application Menu";
-  static constexpr char kLabel[] = "label";
-  static constexpr char kIconSize[] = "iconSize";
-  static constexpr char kFontSize[] = "fontSize";
-  static constexpr char kBackgroundAlpha[] = "backgroundAlpha";
 
   static constexpr char kPagerCategory[] = "Pager";
   static constexpr char kWallpaper[] = "wallpaper";

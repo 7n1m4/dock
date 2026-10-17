@@ -45,7 +45,6 @@ namespace {
 // The per-dock component toggles, in the same order as the model keys they
 // write and as DockPanel::setFeatureVisible's switch cases.
 const std::vector<std::pair<const char*, const char*>> kFeatureRows = {
-    {"Application Menu", "showApplicationMenu"},
     {"Pager", "showPager"},
     {"Task Manager", "showTaskManager"},
     {"Trash", "showTrash"},
@@ -168,7 +167,7 @@ void DockSettingsScreen::loadData() {
       static_cast<int>(model_->visibility(dockId_)));
 
   const std::vector<bool (MultiDockModel::*)(int) const> featureGetters = {
-      &MultiDockModel::showApplicationMenu, &MultiDockModel::showPager,
+      &MultiDockModel::showPager,
       &MultiDockModel::showTaskManager, &MultiDockModel::showTrash,
       &MultiDockModel::showWifiManager, &MultiDockModel::showVolumeControl,
       &MultiDockModel::showBatteryIndicator,
@@ -192,8 +191,6 @@ void DockSettingsScreen::loadData() {
   if (embeddedLaunchersDialog_) embeddedLaunchersDialog_->reload();
   if (embeddedTaskManagerDialog_) embeddedTaskManagerDialog_->reload();
   embedKeyboardLayoutsDialog();
-  if (embeddedApplicationMenuDialog_)
-    embeddedApplicationMenuDialog_->reload();
   if (embeddedWallpaperDialog_) embeddedWallpaperDialog_->populateDesktopList();
 }
 
@@ -277,7 +274,7 @@ void DockSettingsScreen::saveData() {
     // The panel is gone (e.g. removed through this window); only the model
     // side of the toggles can still be written.
     const std::vector<void (MultiDockModel::*)(int, bool)> modelSetters = {
-        &MultiDockModel::setShowApplicationMenu, &MultiDockModel::setShowPager,
+        &MultiDockModel::setShowPager,
         &MultiDockModel::setShowTaskManager, &MultiDockModel::setShowTrash,
         &MultiDockModel::setShowWifiManager,
         &MultiDockModel::setShowVolumeControl,
@@ -530,13 +527,6 @@ void DockSettingsScreen::createComponentsPage() {
   taskManagerLayout->addWidget(embeddedTaskManagerDialog_);
   layout->addWidget(taskManagerGroup);
 
-  auto* appMenuGroup = new QGroupBox(tr("Application Menu"));
-  auto* appMenuLayout = new QVBoxLayout(appMenuGroup);
-  embeddedApplicationMenuDialog_ =
-      new ApplicationMenuSettingsDialog(this, model_);
-  embeddedApplicationMenuDialog_->configureForEmbedding();
-  appMenuLayout->addWidget(embeddedApplicationMenuDialog_);
-  layout->addWidget(appMenuGroup);
 
   layout->addStretch();
 }

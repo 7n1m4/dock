@@ -65,7 +65,7 @@ void MultiDockModel::loadDocks() {
 
 void MultiDockModel::addDock(PanelPosition position, int screen,
                              PanelVisibility visibility,
-                             bool showApplicationMenu, bool showPager,
+                             bool showPager,
                              bool showTaskManager, bool showTrash,
                              bool showWifiManager, bool showVolumeControl,
                              bool showBatteryIndicator, bool showKeyboardLayout,
@@ -73,7 +73,6 @@ void MultiDockModel::addDock(PanelPosition position, int screen,
   auto configPath = configHelper_.findNextDockConfig();
   auto dockId = addDock(configPath, position, screen, visibility);
   setLaunchers(dockId, defaultLaunchers());
-  setShowApplicationMenu(dockId, showApplicationMenu);
   setShowPager(dockId, showPager);
   setShowTaskManager(dockId, showTaskManager);
   setShowTrash(dockId, showTrash);
@@ -94,10 +93,6 @@ void MultiDockModel::addDock(PanelPosition position, int screen,
     setBackgroundColor(color);
     setBorderColor(QColor(kDefaultBorderColor));
     setTooltipFontSize(kDefaultTooltipFontSize);
-
-    setApplicationMenuName(kDefaultApplicationMenuName);
-    setApplicationMenuFontSize(kDefaultApplicationMenuFontSize);
-    setApplicationMenuBackgroundAlpha(kDefaultApplicationMenuBackgroundAlpha);
 
     setUse24HourClock(kDefaultUse24HourClock);
     setClockFontScaleFactor(kDefaultClockFontScaleFactor);

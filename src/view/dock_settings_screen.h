@@ -33,7 +33,6 @@
 #include <QSpinBox>
 #include <QStackedWidget>
 
-#include "application_menu_settings_dialog.h"
 #include "appearance_settings_dialog.h"
 #include "dock_panel.h"
 #include "edit_keyboard_layouts_dialog.h"
@@ -122,7 +121,6 @@ class DockSettingsScreen : public QDialog {
   EditLaunchersDialog* embeddedLaunchersDialog_ = nullptr;
   TaskManagerSettingsDialog* embeddedTaskManagerDialog_ = nullptr;
   EditKeyboardLayoutsDialog* embeddedKeyboardLayoutsDialog_ = nullptr;
-  ApplicationMenuSettingsDialog* embeddedApplicationMenuDialog_ = nullptr;
   WallpaperSettingsDialog* embeddedWallpaperDialog_ = nullptr;
 
   // Per-panel controls on the Panel page.

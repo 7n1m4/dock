@@ -98,7 +98,6 @@ void AddPanelDialog::setMode(Mode mode) {
                            ? QString("Please set up your first panel.")
                            : QString("Please set up your new panel."));
 
-  ui->showApplicationMenu->setChecked(mode == Mode::Welcome);
   ui->showPager->setChecked(false);
   ui->showTaskManager->setChecked(mode == Mode::Welcome);
   ui->showTrash->setChecked(mode == Mode::Welcome);
@@ -111,7 +110,6 @@ void AddPanelDialog::setMode(Mode mode) {
   ui->showClock->setChecked(mode == Mode::Welcome);
 
   ui->componentsLabel->setVisible(mode != Mode::Clone);
-  ui->showApplicationMenu->setVisible(mode != Mode::Clone);
   ui->showPager->setVisible(mode != Mode::Clone);
   ui->showTaskManager->setVisible(mode != Mode::Clone);
   ui->showTrash->setVisible(mode != Mode::Clone);
@@ -221,7 +219,7 @@ void AddPanelDialog::accept() {
                   : PanelStyle::Metal2D_NonFloating);
     }
     model_->addDock(
-        position, screen, visibility, ui->showApplicationMenu->isChecked(),
+        position, screen, visibility,
         ui->showPager->isChecked(), ui->showTaskManager->isChecked(),
         ui->showTrash->isChecked(), ui->showWifiManager->isChecked(),
         ui->showVolumeControl->isChecked(), ui->showBatteryIndicator->isChecked(),

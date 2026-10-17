@@ -39,7 +39,6 @@
 #include <model/multi_dock_model.h>
 
 #include "add_panel_dialog.h"
-#include "application_menu_settings_dialog.h"
 #include "appearance_settings_dialog.h"
 #include "dock_item.h"
 #include "edit_keyboard_layouts_dialog.h"
@@ -172,7 +171,7 @@ class DockPanel : public QWidget {
   // wrapper to be reachable from a QComboBox.
   void setPanelScreen(int screen) { setScreen(screen); }
 
-  // Sets one of the 11 per-dock component toggles. Index order matches
+  // Sets one of the 9 per-dock component toggles. Index order matches
   // kFeatureRows in the settings screen.
   void setFeatureVisible(int feature, bool visible);
 
@@ -189,11 +188,6 @@ class DockPanel : public QWidget {
     model_->saveAppearanceConfig();
   }
 
-  void toggleApplicationMenu() {
-    showApplicationMenu_ = !showApplicationMenu_;
-    reload();
-    saveDockConfig();
-  }
 
   void togglePager();
 
@@ -322,7 +316,6 @@ class DockPanel : public QWidget {
   void setPanelStyle(PanelStyle panelStyle);
   int itemCount() const { return static_cast<int>(items_.size()); }
 
-  int applicationMenuItemCount() const { return showApplicationMenu_ ? 1 : 0; }
 
   int launcherItemCount() const {
     return model_->launcherConfigs(dockId_).size();
@@ -340,7 +333,6 @@ class DockPanel : public QWidget {
   void loadAppearanceConfig();
 
   void initLaunchers();
-  void initApplicationMenu();
   void initPager();
   void initTasks();
   void reloadTasks();
@@ -421,7 +413,6 @@ class DockPanel : public QWidget {
   PanelPosition position_;
   int screen_;  // the screen (as screen index) that the dock is on.
   PanelVisibility visibility_;
-  bool showApplicationMenu_;
   bool showPager_;
   bool showTrash_;
   bool showWifiManager_;
@@ -474,7 +465,6 @@ class DockPanel : public QWidget {
   AppearanceSettingsDialog appearanceSettingsDialog_;
   EditKeyboardLayoutsDialog editKeyboardLayoutsDialog_;
   EditLaunchersDialog editLaunchersDialog_;
-  ApplicationMenuSettingsDialog applicationMenuSettingsDialog_;
   WallpaperSettingsDialog wallpaperSettingsDialog_;
   TaskManagerSettingsDialog taskManagerSettingsDialog_;
 

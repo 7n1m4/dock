@@ -47,8 +47,6 @@ set(SRCS
     model/multi_dock_model.cc
     view/add_panel_dialog.cc
     view/appearance_settings_dialog.cc
-    view/application_menu_settings_dialog.cc
-    view/application_menu.cc
     view/battery_indicator.cc
     view/calendar.cc
     view/clock.cc
@@ -99,8 +97,6 @@ set(SRCS
     model/multi_dock_model.h
     view/add_panel_dialog.h
     view/appearance_settings_dialog.h
-    view/application_menu_settings_dialog.h
-    view/application_menu.h
     view/battery_indicator.h
     view/calendar.h
     view/clock.h
@@ -134,7 +130,6 @@ set(SRCS
     utils/menu_utils.h
     view/add_panel_dialog.ui
     view/appearance_settings_dialog.ui
-    view/application_menu_settings_dialog.ui
     view/dock_settings_screen.ui
     view/edit_keyboard_layouts_dialog.ui
     view/edit_launchers_dialog.ui

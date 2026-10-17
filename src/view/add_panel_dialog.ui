@@ -114,22 +114,6 @@
     <string>Optional features:</string>
    </property>
   </widget>
-  <widget class="QCheckBox" name="showApplicationMenu">
-   <property name="geometry">
-    <rect>
-     <x>120</x>
-     <y>100</y>
-     <width>300</width>
-     <height>30</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Application Menu</string>
-   </property>
-   <property name="checked">
-    <bool>true</bool>
-   </property>
-  </widget>
   <widget class="QCheckBox" name="showPager">
    <property name="geometry">
     <rect>
