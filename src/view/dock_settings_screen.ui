@@ -73,9 +73,6 @@
        <widget class="QWidget" name="appearancePage">
         <layout class="QVBoxLayout" name="appearancePageLayout"/>
        </widget>
-       <widget class="QWidget" name="componentsPage">
-        <layout class="QVBoxLayout" name="componentsPageLayout"/>
-       </widget>
        <widget class="QWidget" name="helpPage">
         <layout class="QVBoxLayout" name="helpPageLayout"/>
        </widget>

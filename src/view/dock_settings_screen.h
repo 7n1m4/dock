@@ -25,12 +25,9 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDialog>
-#include <QFontComboBox>
 #include <QGroupBox>
 #include <QList>
 #include <QListWidget>
-#include <QPushButton>
-#include <QSpinBox>
 #include <QStackedWidget>
 
 #include "appearance_settings_dialog.h"
@@ -85,20 +82,12 @@ class DockSettingsScreen : public QDialog {
   void resetData();
   void saveData();
 
-  // Embeds the screen's own keyboard-layouts dialog, seeded from the target
-  // panel's live KeyboardLayout item.
-  void embedKeyboardLayoutsDialog();
-
-  // Enables/disables the Empty Trash button per the target panel's trash.
-  void updateTrashButton();
-
   void createLaunchersDialog();
 
   void createPanelPage();
   void createLaunchersPage();
   void createOptionalFeaturesPage();
   void createAppearancePage();
-  void createComponentsPage();
   void createHelpPage();
 
   Ui::DockSettingsScreen *ui;
@@ -127,19 +116,6 @@ class DockSettingsScreen : public QDialog {
   // Optional Features page: the 9 per-dock component toggles, in the same
   // order as the model keys they write.
   QList<QCheckBox*> featureToggles_;
-
-  // Components page.
-  QComboBox* volumeScrollStepSelector_;
-  QComboBox* versionCheckFrequencySelector_;
-
-  // Clock settings on the Components page (written straight to the model).
-  QFontComboBox* clockFontFamilySelector_;
-  QSpinBox* clockFontSizeSelector_;
-  QCheckBox* clock24HourClock_;
-
-  // Controls that report on the target panel's live items.
-
-  // The target panel's Trash, whose trashStateChanged drives the button.
 
 };
 

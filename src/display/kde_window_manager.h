@@ -159,11 +159,6 @@ class KdeWindowManager : public QObject {
       struct org_kde_plasma_window *org_kde_plasma_window,
       const char *is);
 
-  static void application_menu(
-      void *data,
-      struct org_kde_plasma_window *org_kde_plasma_window,
-      const char *service_name,
-      const char *object_path);
 
   static void activity_entered(
       void *data,
@@ -202,7 +197,6 @@ class KdeWindowManager : public QObject {
       pid_changed,
       virtual_desktop_entered,
       virtual_desktop_left,
-      application_menu,
       activity_entered,
       activity_left,
       resource_name_changed,

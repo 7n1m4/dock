@@ -536,17 +536,6 @@ struct org_kde_plasma_window_listener {
 				     struct org_kde_plasma_window *org_kde_plasma_window,
 				     const char *is);
 	/**
-	 * notify the client that the current appmenu changed
-	 *
-	 * This event will be sent after the application menu for the
-	 * window has changed.
-	 * @since 10
-	 */
-	void (*application_menu)(void *data,
-				 struct org_kde_plasma_window *org_kde_plasma_window,
-				 const char *service_name,
-				 const char *object_path);
-	/**
 	 * the window entered an activity
 	 *
 	 * This event will be sent when the window has entered an

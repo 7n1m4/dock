@@ -414,11 +414,6 @@ bool KdeWindowManager::showingDesktop_;
   }
 }
 
-/* static */ void KdeWindowManager::application_menu(
-    void *data,
-    struct org_kde_plasma_window* window,
-    const char *service_name,
-    const char *object_path) {}
 
 /* static */ void KdeWindowManager::activity_entered(
     void *data,

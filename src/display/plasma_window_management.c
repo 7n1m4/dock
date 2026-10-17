@@ -97,7 +97,6 @@ static const struct wl_message org_kde_plasma_window_events[] = {
 	{ "pid_changed", "u", plasma_window_management_types + 0 },
 	{ "virtual_desktop_entered", "8s", plasma_window_management_types + 0 },
 	{ "virtual_desktop_left", "8s", plasma_window_management_types + 0 },
-	{ "application_menu", "10ss", plasma_window_management_types + 0 },
 	{ "activity_entered", "14s", plasma_window_management_types + 0 },
 	{ "activity_left", "14s", plasma_window_management_types + 0 },
 	{ "resource_name_changed", "16s", plasma_window_management_types + 0 },
@@ -106,7 +105,7 @@ static const struct wl_message org_kde_plasma_window_events[] = {
 WL_PRIVATE const struct wl_interface org_kde_plasma_window_interface = {
 	"org_kde_plasma_window", 16,
 	15, org_kde_plasma_window_requests,
-	17, org_kde_plasma_window_events,
+	16, org_kde_plasma_window_events,
 };
 
 static const struct wl_message org_kde_plasma_activation_feedback_requests[] = {

@@ -22,11 +22,9 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDebug>
-#include <QFontComboBox>
 #include <QGroupBox>
 #include <QLabel>
 #include <QPushButton>
-#include <QSpinBox>
 #include <QVBoxLayout>
 
 #include <display/window_system.h>
@@ -71,8 +69,7 @@ DockSettingsScreen::DockSettingsScreen(QWidget* parent, MultiDockModel* model,
   pages_ = ui->pages_;
   const QStringList pageNames = {tr("Panel"), tr("Launchers"),
                                  tr("Optional Features"),
-                                 tr("Appearance & Style"), tr("Components"),
-                                 tr("Help")};
+                                 tr("Appearance & Style"), tr("Help")};
   for (const auto& name : pageNames) {
     pageList_->addItem(name);
   }
@@ -84,7 +81,6 @@ DockSettingsScreen::DockSettingsScreen(QWidget* parent, MultiDockModel* model,
   createLaunchersPage();
   createOptionalFeaturesPage();
   createAppearancePage();
-  createComponentsPage();
   createHelpPage();
   createLaunchersDialog();
 
@@ -159,24 +155,12 @@ void DockSettingsScreen::loadData() {
   for (size_t i = 0; i < featureToggles_.size(); ++i) {
     featureToggles_[i]->setChecked((model_->*featureGetters[i])(dockId_));
   }
-
-  volumeScrollStepSelector_->setCurrentIndex(
-      volumeScrollStepSelector_->findData(model_->volumeScrollStep()));
-  clockFontFamilySelector_->setCurrentFont(QFont(model_->clockFontFamily()));
-  clockFontSizeSelector_->setValue(
-      static_cast<int>(model_->clockFontScaleFactor() * 100.0));
-  clock24HourClock_->setChecked(model_->use24HourClock());
-
-  updateTrashButton();
-
   if (embeddedAppearanceDialog_) embeddedAppearanceDialog_->reload();
   if (embeddedLaunchersDialog_) embeddedLaunchersDialog_->reload();
   if (embeddedTaskManagerDialog_) embeddedTaskManagerDialog_->reload();
 }
 
 
-void DockSettingsScreen::updateTrashButton() {
-}
 
 void DockSettingsScreen::resetData() {
   loadData();
@@ -202,12 +186,7 @@ void DockSettingsScreen::saveData() {
     // The panel is gone (e.g. removed through this window); only the model
     // side of the toggles can still be written.
     const std::vector<void (MultiDockModel::*)(int, bool)> modelSetters = {
-        &MultiDockModel::setShowTaskManager, &MultiDockModel::setShowTrash,
-        &MultiDockModel::setShowWifiManager,
-        &MultiDockModel::setShowVolumeControl,
-        &MultiDockModel::setShowBatteryIndicator,
-        &MultiDockModel::setShowKeyboardLayout,
-        &MultiDockModel::setShowVersionChecker, &MultiDockModel::setShowClock,
+        &MultiDockModel::setShowTaskManager,
     };
     for (size_t i = 0; i < featureToggles_.size(); ++i) {
       (model_->*modelSetters[i])(dockId_, featureToggles_[i]->isChecked());
@@ -215,12 +194,6 @@ void DockSettingsScreen::saveData() {
     model_->saveDockConfig(dockId_);
   }
 
-  model_->setClockFontFamily(clockFontFamilySelector_->currentFont().family());
-  model_->setClockFontScaleFactor(
-      clockFontSizeSelector_->value() / 100.0);
-  model_->setUse24HourClock(clock24HourClock_->isChecked());
-
-  updateTrashButton();
 }
 
 void DockSettingsScreen::createLaunchersDialog() {
@@ -339,38 +312,6 @@ void DockSettingsScreen::createAppearancePage() {
   layout->addWidget(group);
   layout->addStretch();
 }
-
-void DockSettingsScreen::createComponentsPage() {
-  auto* layout = ui->componentsPageLayout;
-
-
-
-  auto* clockGroup = new QGroupBox(tr("Clock"));
-  auto* clockLayout = new QVBoxLayout(clockGroup);
-  clockLayout->addWidget(new QLabel(tr("Font family:")));
-  clockFontFamilySelector_ = new QFontComboBox();
-  clockLayout->addWidget(clockFontFamilySelector_);
-  clockLayout->addWidget(new QLabel(tr("Font size (% of default):")));
-  clockFontSizeSelector_ = new QSpinBox();
-  clockFontSizeSelector_->setRange(50, 150);
-  clockLayout->addWidget(clockFontSizeSelector_);
-  clock24HourClock_ = new QCheckBox(tr("Use 24-hour clock"));
-  clockLayout->addWidget(clock24HourClock_);
-  layout->addWidget(clockGroup);
-
-
-
-  auto* taskManagerGroup = new QGroupBox(tr("Task Manager"));
-  auto* taskManagerLayout = new QVBoxLayout(taskManagerGroup);
-  embeddedTaskManagerDialog_ = new TaskManagerSettingsDialog(this, model_);
-  embeddedTaskManagerDialog_->configureForEmbedding();
-  taskManagerLayout->addWidget(embeddedTaskManagerDialog_);
-  layout->addWidget(taskManagerGroup);
-
-
-  layout->addStretch();
-}
-
 void DockSettingsScreen::createHelpPage() {
   auto* layout = ui->helpPageLayout;
   auto* group = new QGroupBox(tr("Help"));
