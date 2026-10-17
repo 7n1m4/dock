@@ -19,6 +19,14 @@ namespace crystaldock {
 
 namespace {
 
+// Names (wl_registry global names) of the protocol globals this dock has bound.
+// Populated by registry_global() and consulted by registry_global_remove(), which
+// only gets a name and cannot otherwise tell which proxy it refers to.
+uint32_t kde_virtual_desktop_management_name_ = 0;
+uint32_t kde_window_management_name_ = 0;
+uint32_t kde_screen_edge_manager_name_ = 0;
+uint32_t wlr_window_manager_name_ = 0;
+
 LayerShellQt::Window* getLayerShellWin(QWidget* widget) {
   QWindow* win = WindowSystem::getWindow(widget);
   if (win == nullptr) {
@@ -107,7 +115,7 @@ std::unique_ptr<QDBusInterface> WindowSystem::activityManager_;
 }
 
 /* static */ bool WindowSystem::hasActivityManager() {
-  return activityManager_->isValid();
+  return activityManager_ && activityManager_->isValid();
 }
 
 /* static */ void WindowSystem::setAnchorAndStrut(
@@ -180,6 +188,8 @@ void WindowSystem::initScreens() {
     if (!kde_virtual_desktop_management_) {
       std::cerr << "Failed to bind org_kde_plasma_virtual_desktop_management Wayland interface"
                 << std::endl;
+    } else {
+      kde_virtual_desktop_management_name_ = name;
     }
   } else if (std::string(interface) == "org_kde_plasma_window_management") {
     kde_window_management_ =
@@ -188,6 +198,8 @@ void WindowSystem::initScreens() {
     if (!kde_window_management_) {
       std::cerr << "Failed to bind org_kde_plasma_window_management Wayland interface. "
                 << "Maybe another client has already bound it?" << std::endl;
+    } else {
+      kde_window_management_name_ = name;
     }
   } else if (std::string(interface) == "kde_screen_edge_manager_v1") {
     kde_screen_edge_manager_ =
@@ -196,6 +208,8 @@ void WindowSystem::initScreens() {
     if (!kde_screen_edge_manager_) {
       std::cerr << "Failed to bind kde_screen_edge_manager_v1 Wayland interface"
                 << std::endl;
+    } else {
+      kde_screen_edge_manager_name_ = name;
     }
   } else if (std::string(interface) == "zwlr_foreign_toplevel_manager_v1") {
     wlr_window_manager_ =
@@ -204,13 +218,45 @@ void WindowSystem::initScreens() {
     if (!wlr_window_manager_) {
       std::cerr << "Failed to bind zwlr_foreign_toplevel_manager_v1 Wayland interface"
                 << std::endl;
+    } else {
+      wlr_window_manager_name_ = name;
     }
   }
 }
 
 /* static */ void WindowSystem::registry_global_remove(
     void *data, struct wl_registry *wl_registry, uint32_t name) {
-  // Ignore.
+  // A global we bound has been withdrawn by the compositor (e.g. the window
+  // manager restarted). The proxy we hold is now dead on the compositor side
+  // and must not be used for any further requests. Make the pointers honest so
+  // that the has*Manager() gates above keep gating correctly.
+  // Note: this does not re-init the subsystem, so cached state owned by the
+  // corresponding manager (its window/desktop lists) becomes stale-but-not-freed.
+  // TODO: a full recovery path (re-init the manager, clear its cached state)
+  // needs a way to flush the items the dock already created from that state.
+  if (name == kde_virtual_desktop_management_name_ &&
+      kde_virtual_desktop_management_ != nullptr) {
+    std::cerr << "Wayland global org_kde_plasma_virtual_desktop_management was removed"
+              << std::endl;
+    org_kde_plasma_virtual_desktop_management_destroy(kde_virtual_desktop_management_);
+    kde_virtual_desktop_management_ = nullptr;
+    kde_virtual_desktop_management_name_ = 0;
+  } else if (name == kde_window_management_name_ && kde_window_management_ != nullptr) {
+    std::cerr << "Wayland global org_kde_plasma_window_management was removed" << std::endl;
+    org_kde_plasma_window_management_destroy(kde_window_management_);
+    kde_window_management_ = nullptr;
+    kde_window_management_name_ = 0;
+  } else if (name == kde_screen_edge_manager_name_ && kde_screen_edge_manager_ != nullptr) {
+    std::cerr << "Wayland global kde_screen_edge_manager_v1 was removed" << std::endl;
+    kde_screen_edge_manager_v1_destroy(kde_screen_edge_manager_);
+    kde_screen_edge_manager_ = nullptr;
+    kde_screen_edge_manager_name_ = 0;
+  } else if (name == wlr_window_manager_name_ && wlr_window_manager_ != nullptr) {
+    std::cerr << "Wayland global zwlr_foreign_toplevel_manager_v1 was removed" << std::endl;
+    zwlr_foreign_toplevel_manager_v1_destroy(wlr_window_manager_);
+    wlr_window_manager_ = nullptr;
+    wlr_window_manager_name_ = 0;
+  }
 }
 
 }  // namespace crystaldock

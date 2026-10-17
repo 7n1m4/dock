@@ -21,6 +21,7 @@
 #include <iostream>
 
 #include <QGuiApplication>
+#include <QTimer>
 
 namespace crystaldock {
 
