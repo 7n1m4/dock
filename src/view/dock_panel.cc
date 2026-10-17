@@ -895,16 +895,20 @@ void DockPanel::wheelEvent(QWheelEvent* e) {
 }
 
 void DockPanel::enterEvent (QEnterEvent* e) {
+#ifndef NDEBUG
   qInfo("DBG ENTER: minimized=%d hidden=%d popup=%d", isMinimized_, isHidden_, isShowingPopup_);
+#endif
   if (isMinimized_) {
     isEntering_ = true;
   }
 }
 
 void DockPanel::leaveEvent(QEvent* e) {
+#ifndef NDEBUG
   qInfo("DBG LEAVE: minimized=%d hidden=%d popup=%d -> %s",
         isMinimized_, isHidden_, isShowingPopup_,
         (isMinimized_ || isShowingPopup_) ? "IGNORED" : "minimizing");
+#endif
   if (isMinimized_ || isShowingPopup_) {
     return;
   }
@@ -1350,9 +1354,11 @@ void DockPanel::updateLayout() {
     isMinimized_ = true;
     if (autoHide()) { isHidden_ = true; }
     if (intellihide()) { isHidden_ = intellihideShouldHide(); }
+#ifndef NDEBUG
     qInfo("DBG minimize: hidden=%d minimized=%d leaving=%d entering=%d popup=%d masky=%d",
           isHidden_, isMinimized_, isLeaving_, isEntering_, isShowingPopup_,
           isHidden_ && !WindowSystem::hasAutoHideManager() ? 1 : minHeight_);
+#endif
     update();
     // Here we have to wait a bit before setMask() to avoid visual artifacts.
     QTimer::singleShot(500, [this]{ setMask(); });
@@ -1490,8 +1496,10 @@ void DockPanel::updateLayout(int x, int y) {
   WindowSystem::setLayer(this, LayerShellQt::Window::LayerTop);
   isMinimized_ = false;
   if (autoHide() || intellihide()) { isHidden_ = false; }
+#ifndef NDEBUG
   qInfo("DBG expand: hidden=%d minimized=%d entering=%d x=%d y=%d",
         isHidden_, isMinimized_, isEntering_, x, y);
+#endif
   setMask();
   updateActiveItem(x, y);
   update();
@@ -1608,10 +1616,12 @@ void DockPanel::recoverIfPointerIsOverHiddenDock() {
   const QRect strip = WindowSystem::hasAutoHideManager()
       ? QRect() : getMinimizedDockGeometry();
   const bool armed = isMinimized_ && isHidden_ && !isShowingPopup_;
+#ifndef NDEBUG
   qInfo("DBG recover-check: armed=%d strip=%d,%d %dx%d cursor=%d,%d over=%d",
         armed, strip.x(), strip.y(), strip.width(), strip.height(),
         QCursor::pos().x(), QCursor::pos().y(),
         (int)(!strip.isNull() && strip.contains(QCursor::pos())));
+#endif
   if (!isMinimized_ || !isHidden_ || isShowingPopup_) {
     // The panel is already up (or a menu is open); nothing to recover.
     return;
