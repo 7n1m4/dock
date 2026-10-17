@@ -25,12 +25,24 @@ Concretely, prefer:
 
 Popups (context menus, cascading app browsers) combine a state machine with a
 foreign process and a compositor race. They are where this dock's crashes and
-hangs come from. Right-click menus were removed for this reason (see PR #1), and
-the application-menu item was removed for the same reason.
+hangs come from. Right-click menus were removed for this reason, and the
+application-menu item was removed for the same reason.
 
 Every remaining interactive surface must be checkable against one question:
 **does this need a popup at all?** If the answer is "not really", it should not
 be in the tree.
+
+Still shipping, so the rule is only partly fulfilled — an open decision, not a
+closed one:
+
+| Popup | File | Verdict |
+|---|---|---|
+| Keyboard-layout picker | `keyboard_layout.cc:79` | Not redundant. The settings dialog only edits *which* layouts exist; this menu is the only way to *switch* between them (`onKeyboardLayoutSelected` drives IBus). Removing it needs a replacement switcher first. |
+| Volume slider | `volume_control.cc:131-132` | Genuinely interactive, no replacement surface. Removing it means deleting the feature, not a straight cleanup. |
+| Wi-Fi network picker | `wifi_manager.cc:178-180` | Same: it is the only way to pick a network. |
+
+Deleting a popup is only right when a non-popup path already exists for the
+same goal. Where it doesn't, the honest move is to build that path first.
 
 ## Deleting a feature: find its real consumers first
 

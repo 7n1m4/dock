@@ -129,7 +129,7 @@ class DockSettingsScreen : public QDialog {
   QComboBox* visibilitySelector_;
   QComboBox* styleSelector_;
 
-  // Optional Features page: the 10 per-dock component toggles, in the same
+  // Optional Features page: the 9 per-dock component toggles, in the same
   // order as the model keys they write.
   QList<QCheckBox*> featureToggles_;
 

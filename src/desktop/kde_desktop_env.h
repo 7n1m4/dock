@@ -29,8 +29,6 @@ class KdeDesktopEnv : public DesktopEnv {
  public:
   KdeDesktopEnv();
 
-  QString getApplicationMenuIcon() const override { return "start-here-kde"; }
-
   std::vector<Category> getApplicationMenuSystemCategories() const override;
 
   std::vector<QString> getDefaultLaunchers() const override;

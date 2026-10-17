@@ -42,9 +42,9 @@ class DesktopEnv {
   // Return true for tiling Wayland compositors (e.g. Hyprland, Niri).
   virtual bool isTiling() const { return false; }
 
-  virtual QString getApplicationMenuIcon() const { return "start-here"; }
-
-  // System categories (e.g. Session/Power) on the Application Menu.
+  // System categories (e.g. Session/Power). These feed the .desktop registry's
+  // system categories, which is how the pinned Lock Screen / Log Out launchers
+  // resolve their commands -- do not remove alongside the Application Menu.
   virtual std::vector<Category> getApplicationMenuSystemCategories() const { return {}; }
 
   // Default launchers.
